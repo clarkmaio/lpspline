@@ -2,7 +2,7 @@
 import abc
 import numpy as np
 import cvxpy as cp
-from typing import List, Optional, Union
+from typing import List, Optional
 
 class Spline(abc.ABC):
     """

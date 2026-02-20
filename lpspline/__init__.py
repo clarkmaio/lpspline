@@ -9,8 +9,4 @@ from .spline import Factor as f
 
 from .constraints import Monotonicity, Concavity, Convexity, Anchor
 
-# Aliases
-LinearSpline = Linear
-
-
 from .viz import plot_components

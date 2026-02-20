@@ -3,7 +3,7 @@ import polars as pl
 import cvxpy as cp
 import numpy as np
 from typing import List, Optional, Union, Dict, Any, Tuple
-import lpspline.spline.base as base_spline
+from .spline import base as base_spline
 
 class LpRegressor:
     """

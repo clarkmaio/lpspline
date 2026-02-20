@@ -1,7 +1,7 @@
 
 import numpy as np
 import cvxpy as cp
-from typing import List
+from typing import List, Optional
 from .base import Spline
 
 class PiecewiseLinear(Spline):
