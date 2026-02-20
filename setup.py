@@ -16,7 +16,7 @@ with open(os.path.join(current_path, "requirements.txt"), "r", encoding="utf-8")
 
 setuptools.setup(
     name="lpspline",
-    version="0.0.1",
+    version="0.0.2",
     author="clarkmaio",
     author_email="maioliandrea0@gmail.com",
     description="lpspline",
