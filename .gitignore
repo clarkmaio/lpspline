@@ -11,7 +11,9 @@
 
 **/.secret
 lpspline.egg-info
-
+*.egg-info/
+build/
+dist/
 
 PROJECT_SPECS.md
 deployinstructions.md
