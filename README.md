@@ -12,13 +12,15 @@ pip install lpspline
 
 
 ## Quick Start
+Visit the [marimo playground](https://molab.marimo.io/notebooks/nb_MWvkutFSuuXinahopPY1NA) to try out the package.
 
-LPSpline allows you to easily compose additive models. Here's a quick example:
+
+Here a small code example:
 
 ```python
 import numpy as np
 import polars as pl
-from lpspline import l, pwl, bs
+from lpspline import l, pwl, bs, cs
 
 
 
@@ -43,21 +45,21 @@ y_factor = np.array([0, 2, -1])[x_factor]
 y = y_linear + y_pwl + y_bs + y_cyc + y_factor + np.random.normal(0, 0.2, n)
 
 df = pl.DataFrame({
-    "linear_col": x_linear,
-    "pwl_col": x_pwl,
-    "bs_col": x_bs,
-    "cyc_col": x_cyc,
-    "factor_col": x_factor,
+    "xl": x_linear,
+    "xpwl": x_pwl,
+    "xbs": x_bs,
+    "xcyc": x_cyc,
+    "xfactor": x_factor,
     "target": y
 })
 
 # ---------------------------------------- Model Definition
 model = (
-    l(term='linear_col', bias=True)
-    + pwl(term='pwl_col', knots=[5.])
-    + bs(term="bs_col", knots=np.linspace(0, 10, 5), degree=3)
-    + cs(term="cyc_col", period=2*np.pi, order=2)
-    + f(term="factor_col", n_classes=3)
+    l(term='xl', bias=True)
+    + pwl(term='xpwl', knots=[5.])
+    + bs(term="xbs", knots=np.linspace(0, 10, 5), degree=3)
+    + cs(term="xcyc", period=2*np.pi, order=2)
+    + f(term="xfactor", n_classes=3)
 )
 
 # ---------------------------------------- Model Fitting

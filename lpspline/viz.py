@@ -55,7 +55,7 @@ def plot_components(model: LpRegressor, X: pl.DataFrame, ncols: int = 4, y: pl.S
         fig.delaxes(axes[j])
     
 
-    fig.suptitle("LPSpline Components", fontsize=20)    
+    fig.suptitle("LPSpline Components", fontsize=20, y=1.02)    
     fig.tight_layout()
     
     return fig, axes
