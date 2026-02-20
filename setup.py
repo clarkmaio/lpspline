@@ -22,7 +22,7 @@ setuptools.setup(
     description="lpspline",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="+++++++++++++++++++++++++++++++ URL TO PACKAGE +++++++++++++++", 
+    url="https://github.com/clarkmaio/lpspline",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
