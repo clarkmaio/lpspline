@@ -5,8 +5,8 @@ from typing import List
 from .base import Spline
 
 class Linear(Spline):
-    def __init__(self, term: str, bias: bool = True):
-        super().__init__(term)
+    def __init__(self, term: str, bias: bool = True, tag: Optional[str] = 'linear'):
+        super().__init__(term=term, tag=tag)
         self.bias = bias
         self._variables = []
 

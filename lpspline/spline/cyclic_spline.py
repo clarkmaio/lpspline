@@ -5,8 +5,8 @@ from typing import List
 from .base import Spline
 
 class CyclicSpline(Spline):
-    def __init__(self, term: str, period: float, order: int):
-        super().__init__(term)
+    def __init__(self, term: str, period: float, order: int, tag: Optional[str] = 'cyclicspline'):
+        super().__init__(term=term, tag=tag)
         self.period = period
         self.order = order
         self._variables = []

@@ -10,10 +10,11 @@
 *.idx
 
 **/.secret
+lpspline.egg-info
 
 
 PROJECT_SPECS.md
-deployment_instructions.md
+deployinstructions.md
 .venv
 
 __pycache__

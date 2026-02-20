@@ -5,8 +5,8 @@ from typing import List
 from .base import Spline
 
 class PiecewiseLinear(Spline):
-    def __init__(self, term: str, knots: List[float]):
-        super().__init__(term)
+    def __init__(self, term: str, knots: List[float], tag: Optional[str] = 'pwl'):
+        super().__init__(term=term, tag=tag)
         self.knots = sorted(knots)
         self._variables = []
 

@@ -18,7 +18,7 @@ LPSpline allows you to easily compose additive models. Here's a quick example:
 ```python
 import numpy as np
 import polars as pl
-from lpspline import LinearSpline, PiecewiseLinear, BSpline
+from lpspline import l, pwl, bs
 
 # 1. Prepare Data
 # Suppose df is a Polars DataFrame with columns "x1", "x2", "x3", and "target"
@@ -31,9 +31,9 @@ df = pl.DataFrame({
 
 # 2. Define Components
 model = (
-    LinearSpline("x1", bias=True) +
-    PiecewiseLinear("x2", knots=[5.0]) +
-    BSpline("x3", knots=np.linspace(0, 20, 5), degree=3)
+    l("x1", bias=True) +
+    pwl("x2", knots=[5.0]) +
+    bs("x3", knots=np.linspace(0, 20, 5), degree=3)
 )
 
 # 3. Fit the Model

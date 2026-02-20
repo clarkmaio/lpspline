@@ -5,8 +5,8 @@ from typing import List
 from .base import Spline
 
 class Factor(Spline):
-    def __init__(self, term: str, n_classes: int):
-        super().__init__(term)
+    def __init__(self, term: str, n_classes: int, tag: Optional[str] = 'factor'):
+        super().__init__(term=term, tag=tag)
         self.n_classes = n_classes
         self._variables = []
 

@@ -8,7 +8,7 @@ class Spline(abc.ABC):
     """
     Abstract base class for all spline types.
     """
-    def __init__(self, term: str):
+    def __init__(self, term: str, tag: Optional[str] = None):
         """
         Initialize the Spline.
 
@@ -16,6 +16,7 @@ class Spline(abc.ABC):
             term: The name of the feature column this spline models.
         """
         self.term = term
+        self.tag = tag
 
     @abc.abstractmethod
     def _build_basis(self, x: np.ndarray) -> np.ndarray:

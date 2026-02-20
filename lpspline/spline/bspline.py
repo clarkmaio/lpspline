@@ -8,7 +8,7 @@ class BSpline(Spline):
     """
     B-Spline implementation using the Cox-de Boor recursion algorithm.
     """
-    def __init__(self, term: str, knots: List[float], degree: int = 3):
+    def __init__(self, term: str, knots: List[float], degree: int = 3, tag: Optional[str] = 'bspline'):
         """
         Initialize the B-Spline.
         
@@ -17,7 +17,7 @@ class BSpline(Spline):
             knots: List of knot positions.
             degree: The degree of the spline (default 3 for cubic).
         """
-        super().__init__(term)
+        super().__init__(term=term, tag=tag)
         self.knots = np.sort(np.array(knots))
         self.degree = degree
         self._variables = []
