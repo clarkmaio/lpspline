@@ -9,7 +9,7 @@ Install `lpspline` via pip directly from the repository, or if published:
 ```bash
 pip install lpspline
 ```
-*(Note: If not yet on PyPI, install via `pip install .` in the project root)*
+
 
 ## Quick Start
 
@@ -20,26 +20,50 @@ import numpy as np
 import polars as pl
 from lpspline import l, pwl, bs
 
-# 1. Prepare Data
-# Suppose df is a Polars DataFrame with columns "x1", "x2", "x3", and "target"
+
+
+# ---------------------------------------- Data Generation
+
+n = 1000
+
+# Regressors
+x_linear = np.linspace(0, 10, n)
+x_pwl = np.linspace(0, 10, n)
+x_bs = np.linspace(0, 10, n)
+x_cyc = np.linspace(0, 2*np.pi, n)
+x_factor = np.random.randint(0, 3, n)
+
+# Target
+y_linear = 0.5 * x_linear
+y_pwl = np.where(x_pwl < 5, 0, x_pwl - 5)
+y_bs = np.sin(x_bs) 
+y_cyc = np.cos(x_cyc)
+y_factor = np.array([0, 2, -1])[x_factor]
+
+y = y_linear + y_pwl + y_bs + y_cyc + y_factor + np.random.normal(0, 0.2, n)
+
 df = pl.DataFrame({
-    "x1": np.linspace(0, 10, 100),
-    "x2": np.random.rand(100) * 10,
-    "x3": np.linspace(0, 20, 100),
-    "target": np.sin(np.linspace(0, 10, 100)) + np.random.normal(0, 0.1, 100)
+    "linear_col": x_linear,
+    "pwl_col": x_pwl,
+    "bs_col": x_bs,
+    "cyc_col": x_cyc,
+    "factor_col": x_factor,
+    "target": y
 })
 
-# 2. Define Components
+# ---------------------------------------- Model Definition
 model = (
-    l("x1", bias=True) +
-    pwl("x2", knots=[5.0]) +
-    bs("x3", knots=np.linspace(0, 20, 5), degree=3)
+    l(term='linear_col', bias=True)
+    + pwl(term='pwl_col', knots=[5.])
+    + bs(term="bs_col", knots=np.linspace(0, 10, 5), degree=3)
+    + cs(term="cyc_col", period=2*np.pi, order=2)
+    + f(term="factor_col", n_classes=3)
 )
 
-# 3. Fit the Model
+# ---------------------------------------- Model Fitting
 model.fit(df, df["target"])
 
-# 4. Predict
+# ---------------------------------------- Model Prediction
 predictions = model.predict(df)
 ```
 
