@@ -1,0 +1,3 @@
+
+class Anchor:
+    pass

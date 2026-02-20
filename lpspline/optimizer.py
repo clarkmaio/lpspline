@@ -1,0 +1,175 @@
+
+import polars as pl
+import cvxpy as cp
+import numpy as np
+from typing import List, Optional, Union, Dict, Any, Tuple
+import lpspline.spline.base as base_spline
+
+class LpRegressor:
+    """
+    LpRegressor class to fit linear spline models using convex optimization.
+    """
+
+    def __init__(self, splines: Union["base_spline.Spline", List["base_spline.Spline"]]):
+        """
+        Initialize the LpRegressor.
+
+        Args:
+            splines: A single Spline object or a list of Spline objects.
+        """
+        if isinstance(splines, base_spline.Spline):
+            self.splines = [splines]
+        else:
+            self.splines = splines
+        
+        self.problem: Optional[cp.Problem] = None
+
+    def fit(self, X: pl.DataFrame, y: pl.Series) -> None:
+        """
+        Fit the additive model to the data.
+
+        Minimizes the L2 norm of the difference between the sum of spline terms and the target y.
+        ||Sum(Spline_i(X)) - y||_2
+
+        Args:
+            X: Input DataFrame containing the features.
+            y: Target Series.
+        
+        Raises:
+            ValueError: If no splines are provided or if required columns are missing.
+        """
+        self._validate_input(X)
+
+        total_expression, summary_data = self._build_model_expression(X)
+        
+        self._solve_problem(total_expression, y)
+        
+        self._print_summary(summary_data)
+
+    def predict(self, X: pl.DataFrame, return_components: bool = False) -> np.ndarray:
+        """
+        Predict target values for new data.
+
+        Args:
+            X: Input DataFrame.
+            return_components: If True, returns a matrix where each column corresponds to a spline's output.
+
+        Returns:
+            Numpy array of predictions. 
+            If return_components is True, shape (n_samples, n_splines).
+            Else, shape (n_samples,).
+        
+        Raises:
+            ValueError: If required columns are missing.
+        """
+        n_samples = len(X)
+        
+        if return_components:
+            components = np.zeros((n_samples, len(self.splines)))
+        else:
+            total_value = np.zeros(n_samples)
+        
+        for i, spline in enumerate(self.splines):
+            self._validate_term_in_dataframe(spline.term, X)
+            
+            x_data = X[spline.term].to_numpy()
+            
+            # Evaluate spline expression and get value
+            spline_expr = spline(x_data)
+            spline_val = spline_expr.value
+            
+            if spline_val is None:
+                 print(f"Warning: Spline for term {spline.term} has no value. Using zeros.")
+                 spline_val = np.zeros(n_samples)
+             
+            if return_components:
+                components[:, i] = spline_val
+            else:
+                total_value += spline_val
+                
+        return components if return_components else total_value
+
+    def __add__(self, other: Union["base_spline.Spline", "LpRegressor"]) -> "LpRegressor":
+        """
+        Add a Spline or another LpRegressor to this LpRegressor.
+        Allows syntax like: model = spline1 + spline2
+        """
+        if isinstance(other, base_spline.Spline):
+            self.splines.append(other)
+            return self
+        elif isinstance(other, LpRegressor):
+            self.splines.extend(other.splines)
+            return self
+        else:
+             raise TypeError(f"Cannot add LpRegressor and {type(other)}")
+    
+    def __repr__(self):
+        return f"LpRegressor(splines={self.splines})"
+
+    def _validate_input(self, X: pl.DataFrame) -> None:
+        """Ensure there are splines to fit."""
+        if not self.splines:
+             raise ValueError("No splines to fit.")
+
+    def _validate_term_in_dataframe(self, term: str, X: pl.DataFrame) -> None:
+        """Check if the term exists in the DataFrame columns."""
+        if term not in X.columns:
+                raise ValueError(f"Term {term} not found in input DataFrame columns: {X.columns}")
+
+    def _build_model_expression(self, X: pl.DataFrame) -> Tuple[cp.Expression, List[Dict[str, Any]]]:
+        """
+        Construct the cvxpy expression for the model and collect summary info.
+
+        Returns:
+            Tuple containing the total cvxpy expression and a list of summary dictionaries.
+        """
+        total_expression = 0
+        summary_data = []
+
+        for spline in self.splines:
+            self._validate_term_in_dataframe(spline.term, X)
+            
+            x_data = X[spline.term].to_numpy()
+            spline_expr = spline(x_data)
+            
+            # Collect info for summary
+            num_params = sum(v.size for v in spline._variables)
+            summary_data.append({
+                "Spline Type": type(spline).__name__,
+                "Term": spline.term,
+                "Parameters": num_params
+            })
+            
+            total_expression += spline_expr
+            
+        return total_expression, summary_data
+
+    def _solve_problem(self, expression: cp.Expression, y: pl.Series) -> None:
+        """
+        Set up and solve the convex optimization problem.
+        """
+        y_np = y.to_numpy()
+        objective = cp.Minimize(cp.sum_squares(expression - y_np))
+        
+        self.problem = cp.Problem(objective)
+        self.problem.solve()
+
+    def _print_summary(self, summary_data: List[Dict[str, Any]]) -> None:
+        """
+        Print a formatted summary of the fitted model.
+        """
+        total_params = sum(item["Parameters"] for item in summary_data)
+        status = self.problem.status if self.problem else "Not Fitted"
+        
+        print("\n" + "="*50)
+        print("✨ Model Summary ✨")
+        print("="*50)
+        print(f"Problem Status: " + f"✅ {status}" if status == "optimal" else f"❌ {status}")
+        print("-" * 50)
+        print(f"{'Spline Type':<20} | {'Term':<15} | {'Params':<10}")
+        print("-" * 50)
+        for item in summary_data:
+            print(f"🟢 {item['Spline Type']:<17} | {item['Term']:<15} | {item['Parameters']:<10}")
+        print("-" * 50)
+        print(f"{'📊 Total Parameters':<37} | {total_params:<10}")
+        print("="*50 + "\n")

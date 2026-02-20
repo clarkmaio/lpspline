@@ -1,0 +1,3 @@
+
+class Concavity:
+    pass
