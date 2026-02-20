@@ -65,6 +65,9 @@ model.fit(df, df["target"])
 
 # ---------------------------------------- Model Prediction
 predictions = model.predict(df)
+
+# ---------------------------------------- Model Visualization
+plot_components(model=model, df=df, ncols=3)
 ```
 
 ## Expected output
@@ -75,20 +78,21 @@ Once the model is fitted, you will see a detailed summary to the console:
 ==================================================
 ✨ Model Summary ✨
 ==================================================
-Problem Status: optimal
+Problem Status: ✅ optimal
 --------------------------------------------------
-Spline Type       | Term            | Params    
+Spline Type          | Term            | Params    
 --------------------------------------------------
-🟢 Linear         | x1              | 2         
-🟢 Piecewise      | x2              | 2         
-🟢 BSpline        | x3              | 5         
+🟢 Linear            | linear_col      | 2         
+🟢 PiecewiseLinear   | pwl_col         | 3         
+🟢 BSpline           | bs_col          | 1         
+🟢 CyclicSpline      | cyc_col         | 5         
+🟢 Factor            | factor_col      | 3         
 --------------------------------------------------
-📊 Total Parameters                 | 9         
+📊 Total Parameters                    | 14        
 ==================================================
+
+Model fitted successfully.
 ```
 
-## Demo with multiple variables
-
-Inside the `notebook/` folder you will find a `demo.ipynb` file which plots the learned spline components automatically:
 
 ![LPSpline Visualization](assets/demo_plot.png)
