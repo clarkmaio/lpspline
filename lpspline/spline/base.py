@@ -17,6 +17,30 @@ class Spline(abc.ABC):
         """
         self.term = term
         self.tag = tag
+        self.constraints = []
+
+    def add_constraint(self, *constraints):
+        """
+        Takes in input Constraints.
+        Not all splines can accept all constraints.
+        Raises ValueError depending on the spline type and constraint.
+        """
+        from ..constraints import Monotonic, Convex, Concave
+        from .cyclic_spline import CyclicSpline
+        from .factor import Factor
+        from .linear import Linear
+        from .piecewise_linear import PiecewiseLinear
+        
+        for c in constraints:
+            if isinstance(self, (CyclicSpline, Factor)):
+                if isinstance(c, (Monotonic, Convex, Concave)):
+                    raise ValueError(f"{type(self).__name__} cannot accept {type(c).__name__} constraint.")
+            if isinstance(self, (Linear, PiecewiseLinear)):
+                if isinstance(c, (Convex, Concave)):
+                    raise ValueError(f"{type(self).__name__} cannot accept {type(c).__name__} constraint.")
+                
+            self.constraints.append(c)
+        return self
 
     @abc.abstractmethod
     def _build_basis(self, x: np.ndarray) -> np.ndarray:

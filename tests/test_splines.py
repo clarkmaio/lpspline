@@ -2,7 +2,8 @@
 import pytest
 import numpy as np
 import cvxpy as cp
-from lpspline import Linear, PiecewiseLinear, BSpline, CyclicSpline, Factor, LpRegressor
+from lpspline.spline import Linear, PiecewiseLinear, BSpline, CyclicSpline, Factor
+from lpspline import LpRegressor
 
 class TestSplines:
     

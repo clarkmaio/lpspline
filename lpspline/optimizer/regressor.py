@@ -3,7 +3,8 @@ import polars as pl
 import cvxpy as cp
 import numpy as np
 from typing import List, Optional, Union, Dict, Any, Tuple
-from .spline import base as base_spline
+from ..spline import base as base_spline
+from .summary import print_summary
 
 class LpRegressor:
     """
@@ -42,9 +43,8 @@ class LpRegressor:
 
         total_expression, summary_data = self._build_model_expression(X)
         
-        self._solve_problem(total_expression, y)
-        
-        self._print_summary(summary_data)
+        self._solve_problem(total_expression, y)        
+        print_summary(summary_data, self.problem)
 
     def predict(self, X: pl.DataFrame, return_components: bool = False) -> np.ndarray:
         """
@@ -134,10 +134,13 @@ class LpRegressor:
             
             # Collect info for summary
             num_params = sum(v.size for v in spline._variables)
+            constraint_names = [type(c).__name__ for c in spline.constraints]
+            constraints_str = ", ".join(constraint_names) if constraint_names else "None"
             summary_data.append({
                 "Spline Type": type(spline).__name__,
                 "Term": spline.term,
-                "Parameters": num_params
+                "Parameters": num_params,
+                "Constraints": constraints_str
             })
             
             total_expression += spline_expr
@@ -151,25 +154,11 @@ class LpRegressor:
         y_np = y.to_numpy()
         objective = cp.Minimize(cp.sum_squares(expression - y_np))
         
-        self.problem = cp.Problem(objective)
+        all_constraints = []
+        for spline in self.splines:
+            for c in spline.constraints:
+                all_constraints.extend(c.build_constraint(spline))
+        
+        self.problem = cp.Problem(objective, all_constraints)
         self.problem.solve()
 
-    def _print_summary(self, summary_data: List[Dict[str, Any]]) -> None:
-        """
-        Print a formatted summary of the fitted model.
-        """
-        total_params = sum(item["Parameters"] for item in summary_data)
-        status = self.problem.status if self.problem else "Not Fitted"
-        
-        print("\n" + "="*50)
-        print("✨ Model Summary ✨")
-        print("="*50)
-        print(f"Problem Status: " + f"✅ {status}" if status == "optimal" else f"❌ {status}")
-        print("-" * 50)
-        print(f"{'Spline Type':<20} | {'Term':<15} | {'Params':<10}")
-        print("-" * 50)
-        for item in summary_data:
-            print(f"🟢 {item['Spline Type']:<17} | {item['Term']:<15} | {item['Parameters']:<10}")
-        print("-" * 50)
-        print(f"{'📊 Total Parameters':<37} | {total_params:<10}")
-        print("="*50 + "\n")

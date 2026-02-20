@@ -1,5 +1,5 @@
-
-from .monotonicity import Monotonicity
-from .concavity import Concavity
-from .convexity import Convexity
+from .base import Constraint
+from .monotonicity import Monotonic
+from .concavity import Concave
+from .convexity import Convex
 from .anchor import Anchor
