@@ -43,7 +43,7 @@ def splines_diagnostic(model: LpRegressor, X: pl.DataFrame, ncols: int = 4, y: p
         if len(np.unique(x_vals)) < 10:
             axes[i].plot(x_vals[idx], comp_vals[idx], 'o', color=color, markersize=8, label=spline.tag)
         else:
-            axes[i].plot(x_vals[idx], comp_vals[idx], '-', color=color, linewidth=2, label=spline.tag)
+            axes[i].plot(x_vals[idx], comp_vals[idx], '-', color=color, linewidth=4, label=spline.tag)
             
         axes[i].set_xlabel(feature)
         pmp.remove_axis('top', 'right', ax=axes[i])
@@ -55,7 +55,7 @@ def splines_diagnostic(model: LpRegressor, X: pl.DataFrame, ncols: int = 4, y: p
         fig.delaxes(axes[j])
     
 
-    fig.suptitle("LPSpline Components", fontsize=20, y=1.02)    
+    fig.suptitle("Splines Diagnostic", fontsize=20, y=1.02)    
     fig.tight_layout()
     
     return fig, axes

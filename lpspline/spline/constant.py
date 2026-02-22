@@ -2,7 +2,9 @@
 
 
 from .base import Spline
-
+import cvxpy as cp
+from typing import List, Optional
+import numpy as np
 
 
 class Constant(Spline):
