@@ -5,6 +5,8 @@ LPSpline is a Python package for building and optimizing linear spline models us
 
 It uses a powerful `CVXPY` backend to formulate and solve the mathematical optimization problems behind the scenes.
 
+You can find the original source code and contribute on `GitHub <https://github.com/clarkmaio/lpspline>`_.
+
 Features
 --------
 
