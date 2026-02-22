@@ -1,14 +1,24 @@
 
 import numpy as np
 import cvxpy as cp
-from typing import List, Optional
+from typing import List, Optional, Union
 from .base import Spline
 
 class PiecewiseLinear(Spline):
-    def __init__(self, term: str, knots: List[float], tag: Optional[str] = 'pwl'):
+    def __init__(self, term: str, knots: Union[int, np.ndarray], tag: Optional[str] = 'pwl'):
         super().__init__(term=term, tag=tag)
-        self.knots = sorted(knots)
+        self._knots = knots
         self._variables = []
+
+    @property
+    def knots(self):
+        return self._knots
+
+    def init_spline(self, x: np.ndarray, by: np.ndarray = None):
+        if isinstance(self._knots, int):
+            self._knots = np.linspace(np.min(x), np.max(x), self._knots)
+        else:
+            self._knots = np.sort(self._knots)
 
     def _build_basis(self, x: np.ndarray) -> np.ndarray:
         # Basis for PWL: 1, x, (x-k1)+, (x-k2)+ ...

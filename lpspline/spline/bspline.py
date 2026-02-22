@@ -1,14 +1,14 @@
 
 import numpy as np
 import cvxpy as cp
-from typing import List, Optional
+from typing import List, Optional, Union
 from .base import Spline
 
 class BSpline(Spline):
     """
     B-Spline implementation using the Cox-de Boor recursion algorithm.
     """
-    def __init__(self, term: str, knots: List[float], degree: int = 3, tag: Optional[str] = 'bspline'):
+    def __init__(self, term: str, knots: Union[int, np.ndarray], degree: int = 3, tag: Optional[str] = 'bspline'):
         """
         Initialize the B-Spline.
         
@@ -18,9 +18,20 @@ class BSpline(Spline):
             degree: The degree of the spline (default 3 for cubic).
         """
         super().__init__(term=term, tag=tag)
-        self.knots = np.sort(np.array(knots))
+        self._knots = knots
         self.degree = degree
         self._variables = []
+
+
+    @property
+    def knots(self):
+        return self._knots
+
+    def init_spline(self, x: np.ndarray, by: np.ndarray = None):
+        if isinstance(self._knots, int):
+            self._knots = np.linspace(np.min(x), np.max(x), self._knots)
+        else:
+            self._knots = np.sort(self._knots)
 
 
     def _pad_knots(self, knots: np.ndarray, degree: int) -> np.ndarray:

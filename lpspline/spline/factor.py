@@ -5,10 +5,19 @@ from typing import List, Optional
 from .base import Spline
 
 class Factor(Spline):
-    def __init__(self, term: str, n_classes: int, tag: Optional[str] = 'factor'):
+    def __init__(self, term: str, tag: Optional[str] = 'factor', n_classes: Optional[int] = None):
         super().__init__(term=term, tag=tag)
-        self.n_classes = n_classes
+        self._n_classes = n_classes
         self._variables = []
+
+    @property
+    def n_classes(self):
+        return self._n_classes
+
+    def init_spline(self, x: np.ndarray, by: np.ndarray = None):
+        if self._n_classes is None:
+            self._n_classes = len(np.unique(x))
+        
 
     def _build_basis(self, x: np.ndarray) -> np.ndarray:
         # One-hot encoding

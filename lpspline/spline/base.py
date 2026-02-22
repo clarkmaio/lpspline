@@ -15,10 +15,59 @@ class Spline(abc.ABC):
         Args:
             term: The name of the feature column this spline models.
         """
-        self.term = term
-        self.tag = tag
-        self.constraints = []
-        self.penalties = []
+        self._term = term
+        self._tag = tag
+        self._constraints = []
+        self._penalties = []
+        self._variables = []
+
+    @property
+    def variables(self) -> List[cp.Variable]:
+        """
+        Returns the variables of the spline.
+        """
+        return self._variables
+
+    @property
+    def constraints(self) -> List[cp.Constraint]:
+        """
+        Returns the constraints of the spline.
+        """
+        return self._constraints
+
+    @property
+    def penalties(self) -> List[cp.Expression]:
+        """
+        Returns the penalties of the spline.
+        """
+        return self._penalties
+
+    @property
+    def term(self) -> str:
+        """
+        Returns the term of the spline.
+        """
+        return self._term
+
+    @property
+    def tag(self) -> Optional[str]:
+        """
+        Returns the tag of the spline.
+        """
+        return self._tag
+
+    @property
+    def coefficients(self) -> np.ndarray:
+        """
+        Returns the coefficients of the spline.
+        """
+        return np.array(self._variables[0].value).flatten()
+
+    def init_spline(self, x: np.ndarray, by: np.ndarray = None):
+        """
+        Initialize core parameters to build spline basis according to train data.
+        """
+        pass
 
     @property
     def coefficients(self) -> np.ndarray:
@@ -47,7 +96,7 @@ class Spline(abc.ABC):
                 if isinstance(c, (Convex, Concave)):
                     raise ValueError(f"{type(self).__name__} cannot accept {type(c).__name__} constraint.")
                 
-            self.constraints.append(c)
+            self._constraints.append(c)
         return self
 
     def add_penalty(self, *penalties):
@@ -60,7 +109,7 @@ class Spline(abc.ABC):
         for p in penalties:
             if not isinstance(p, Penalty):
                 raise TypeError(f"Expected a Penalty instance, got {type(p).__name__}")
-            self.penalties.append(p)
+            self._penalties.append(p)
         return self
 
     @abc.abstractmethod
@@ -83,7 +132,7 @@ class Spline(abc.ABC):
         """
         pass
 
-    def __call__(self, x: np.ndarray) -> cp.Expression:
+    def __call__(self, x: np.ndarray, by: np.ndarray = None) -> cp.Expression:
         """
         Evaluates the spline expression for the given input x.
 

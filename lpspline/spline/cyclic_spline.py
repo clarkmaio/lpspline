@@ -5,11 +5,23 @@ from typing import List, Optional
 from .base import Spline
 
 class CyclicSpline(Spline):
-    def __init__(self, term: str, period: float, order: int, tag: Optional[str] = 'cyclicspline'):
+    def __init__(self, term: str, order: int, period: float = None, tag: Optional[str] = 'cyclicspline'):
         super().__init__(term=term, tag=tag)
-        self.period = period
-        self.order = order
+        self._period = period
+        self._order = order
         self._variables = []
+
+    @property
+    def period(self):
+        return self._period
+
+    @property
+    def order(self):
+        return self._order
+
+    def init_spline(self, x: np.ndarray, by: np.ndarray = None):
+        if self._period is None:
+            self._period = np.max(x) - np.min(x)
 
     def _build_basis(self, x: np.ndarray) -> np.ndarray:
         # Cyclic representation using Fourier series
