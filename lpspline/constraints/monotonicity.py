@@ -24,7 +24,11 @@ class Monotonic(Constraint):
                 constraints.append(sign * cp.sum(variables[1:i+1]) >= 0)
                 
         elif isinstance(s, BSpline):
-            raise ValueError(f"Monotonic constraint not supported for spline of type '{type(s).__name__}'")
+            """
+            To make BSpline monotonic we impose coefficients to be monotonic: 
+            c_i >= c_{i-1} for increasing, c_i <= c_{i-1} for decreasing.
+            """
+            constraints.append(sign * (variables[1:] - variables[:-1]) >= 0)
 
         else:
             raise ValueError(f"Monotonic constraint not supported for spline of type '{type(s).__name__}'")
