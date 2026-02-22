@@ -5,7 +5,7 @@ from .base import Constraint
 class Monotonic(Constraint):
     def __init__(self, decreasing: bool = False):
         self.decreasing = decreasing
-
+        
     def build_constraint(self, s) -> list:
         from ..spline import Linear, PiecewiseLinear, BSpline
         variables = s._build_variables()[0]

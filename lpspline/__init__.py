@@ -8,4 +8,3 @@ from .spline import CyclicSpline as cs
 from .spline import Factor as f
 from .spline import Constant as c
 
-from .viz import splines_diagnostic
