@@ -7,7 +7,7 @@ import polars as pl
 from .optimizer import LpRegressor
 
 
-def plot_components(model: LpRegressor, X: pl.DataFrame, ncols: int = 4, y: pl.Series = None):
+def splines_diagnostic(model: LpRegressor, X: pl.DataFrame, ncols: int = 4, y: pl.Series = None):
     """
     Create a plot of the learned spline components.
     Create a plot with at most 4 columns. Modify subplot size according to number of model splines
@@ -37,7 +37,7 @@ def plot_components(model: LpRegressor, X: pl.DataFrame, ncols: int = 4, y: pl.S
             y_arr = y.to_numpy() if isinstance(y, pl.Series) else np.asarray(y)
             other_components_sum = np.sum(components, axis=1) - comp_vals
             partial_resid = y_arr - other_components_sum
-            axes[i].scatter(x_vals, partial_resid, color='black', alpha=0.1, s=10, marker='.')
+            axes[i].scatter(x_vals, partial_resid, color='black', alpha=0.5, s=10, marker='.')
         
         # If categorical style it differently
         if len(np.unique(x_vals)) < 10:

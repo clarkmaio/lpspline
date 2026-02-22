@@ -9,4 +9,4 @@ from .spline import Factor as f
 
 from .constraints import Monotonic, Concave, Convex, Anchor
 
-from .viz import plot_components
+from .viz import splines_diagnostic

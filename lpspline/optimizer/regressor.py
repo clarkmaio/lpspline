@@ -163,11 +163,16 @@ class LpRegressor:
             num_params = sum(v.size for v in spline._variables)
             constraint_names = [type(c).__name__ for c in spline.constraints]
             constraints_str = ", ".join(constraint_names) if constraint_names else "None"
+            penalty_names = [type(p).__name__ for p in getattr(spline, 'penalties', [])]
+            penalties_str = ", ".join(penalty_names) if penalty_names else "None"
+            
             summary_data.append({
                 "Spline Type": type(spline).__name__,
                 "Term": spline.term,
+                "Tag": spline.tag,
                 "Parameters": num_params,
-                "Constraints": constraints_str
+                "Constraints": constraints_str,
+                "Penalties": penalties_str
             })
             
             total_expression += spline_expr
@@ -179,12 +184,19 @@ class LpRegressor:
         Set up and solve the convex optimization problem.
         """
         y_np = y.to_numpy()
-        objective = cp.Minimize(cp.sum_squares(expression - y_np))
+        
+        main_loss = cp.sum_squares(expression - y_np)
+        penalty_loss = 0
         
         all_constraints = []
         for spline in self.splines:
             for c in spline.constraints:
                 all_constraints.extend(c.build_constraint(spline))
+            for p in getattr(spline, 'penalties', []):
+                for p_expr in p.build_penalty(spline):
+                    penalty_loss += p_expr
+                    
+        objective = cp.Minimize(main_loss + penalty_loss)
         
         self.problem = cp.Problem(objective, all_constraints)
         self.problem.solve()

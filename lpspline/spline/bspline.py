@@ -68,6 +68,7 @@ class BSpline(Spline):
             
         return b
 
+
     def _initialize_basis(self, x: np.ndarray, t: np.ndarray, n: int, m: int) -> np.ndarray:
         """
         Initialize degree 0 basis functions.

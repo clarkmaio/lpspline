@@ -18,6 +18,7 @@ class Spline(abc.ABC):
         self.term = term
         self.tag = tag
         self.constraints = []
+        self.penalties = []
 
     @property
     def coefficients(self) -> np.ndarray:
@@ -56,7 +57,11 @@ class Spline(abc.ABC):
         Raises ValueError depending on the spline type and penalty.
         """
         from ..penalties import Penalty
-        raise NotImplementedError("add_penalty not implemented for this spline type.")
+        for p in penalties:
+            if not isinstance(p, Penalty):
+                raise TypeError(f"Expected a Penalty instance, got {type(p).__name__}")
+            self.penalties.append(p)
+        return self
 
     @abc.abstractmethod
     def _build_basis(self, x: np.ndarray) -> np.ndarray:
