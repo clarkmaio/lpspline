@@ -61,6 +61,9 @@ class LpRegressor:
         """
         self._validate_input(X)
 
+        for spline in self.splines:
+            spline.init_spline(X[spline.term].to_numpy())
+
         total_expression, summary_data = self._build_model_expression(X)
         
         self._solve_problem(total_expression, y)        
