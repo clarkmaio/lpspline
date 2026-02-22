@@ -15,6 +15,15 @@ Features
 - First-class support for `polars` DataFrames
 - Built-in diagnostic visualizations
 
+Installation
+------------
+
+You can install LPSpline via pip:
+
+.. code-block:: bash
+
+   pip install lpspline
+
 Quick Start
 -----------
 
