@@ -11,9 +11,21 @@ pip install lpspline
 ```
 
 
-## Quick Start
-Visit the [marimo playground](https://molab.marimo.io/notebooks/nb_MWvkutFSuuXinahopPY1NA) to try out the package.
+## Main Features
 
+- Additive model definition
+- CVXPY backend for optimization
+- Multiple spline types: Linear, Piecewise Linear, B-Splines, Cyclic Splines, Categorical Factors, Constant
+- Penalties on the splines: Ridge, Lasso
+- Constraints on the splines: Monotonic, Anchor
+- Polars DataFrame integration
+- Nice plots using `matplotlib` and `pimpmyplot`
+
+## Sandbox
+
+Visit the [marimo playground](https://molab.marimo.io/notebooks/nb_MWvkutFSuuXinahopPY1NA) for a live demo
+
+## Quick Start
 
 Here a small code example:
 
@@ -21,7 +33,7 @@ Here a small code example:
 import numpy as np
 import polars as pl
 from lpspline import l, pwl, bs, cs
-
+from lpspline.viz import plot_diagnostic
 
 
 # ---------------------------------------- Data Generation
@@ -55,13 +67,12 @@ df = pl.DataFrame({
 
 # ---------------------------------------- Model Definition
 model = (
-    l(term='xl', bias=True)
-    + pwl(term='xpwl', knots=[5.])
-    + bs(term="xbs", knots=np.linspace(0, 10, 5), degree=3)
-    + cs(term="xcyc", period=2*np.pi, order=2)
-    + f(term="xfactor", n_classes=3)
+    +l(term='xl')
+    + pwl(term='xpwl', knots=3)
+    + bs(term="xbs", knots=10, degree=2)
+    + cs(term="xcyc", order=3)
+    + f(term="xfactor")
 )
-
 # ---------------------------------------- Model Fitting
 model.fit(df, df["target"])
 
@@ -69,29 +80,29 @@ model.fit(df, df["target"])
 predictions = model.predict(df)
 
 # ---------------------------------------- Model Visualization
-plot_components(model=model, df=df, ncols=3)
+plot_diagnostic(model=model, X=df, y=df['target'], ncols=3)
 ```
 
 ## Expected output
 
-Once the model is fitted, you will see a detailed summary to the console:
+Once the model is fitted, you will see a detailed summary to the console and a diagnostic plot showing the fitted splines.
 
 ```
-==================================================
+========================================================================================================================
 ✨ Model Summary ✨
-==================================================
+========================================================================================================================
 Problem Status: ✅ optimal
---------------------------------------------------
-Spline Type          | Term            | Params    
---------------------------------------------------
-🟢 Linear            | linear_col      | 2         
-🟢 PiecewiseLinear   | pwl_col         | 3         
-🟢 BSpline           | bs_col          | 1         
-🟢 CyclicSpline      | cyc_col         | 5         
-🟢 Factor            | factor_col      | 3         
---------------------------------------------------
-📊 Total Parameters                    | 14        
-==================================================
+------------------------------------------------------------------------------------------------------------------------
+Spline Type          | Term         | Tag             | Constraints          | Penalties            | Params 
+------------------------------------------------------------------------------------------------------------------------
+🟢 Linear            | xl           | linear          | None                 | None                 | 2       
+🟢 PiecewiseLinear   | xpwl         | pwl             | None                 | None                 | 5       
+🟢 BSpline           | xbs          | bspline         | None                 | None                 | 11      
+🟢 CyclicSpline      | xcyc         | cyclicspline    | None                 | None                 | 7       
+🟢 Factor            | xfactor      | factor          | None                 | None                 | 5       
+------------------------------------------------------------------------------------------------------------------------
+📊 Total Parameters                                                                                 | 29
+========================================================================================================================
 
 Model fitted successfully.
 ```
