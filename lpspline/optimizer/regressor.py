@@ -23,7 +23,27 @@ class LpRegressor:
         else:
             self.splines = splines
         
+        self._check_tags()
         self.problem: Optional[cp.Problem] = None
+
+    def _check_tags(self):
+        """
+        Check if all splines have unique tags.
+        """
+        tags = [spline.tag for spline in self.splines]
+        if len(tags) != len(set(tags)):
+            raise ValueError("All splines must have unique tags.")
+
+
+    def get_spline(self, tag: str) -> base_spline.Spline:
+        """
+        Returns the spline with the given tag.
+        """
+        for spline in self.splines:
+            if spline.tag == tag:
+                return spline
+        raise ValueError(f"Spline with tag '{tag}' not found.")
+        
 
     def fit(self, X: pl.DataFrame, y: pl.Series) -> None:
         """
@@ -62,32 +82,39 @@ class LpRegressor:
         Raises:
             ValueError: If required columns are missing.
         """
-        n_samples = len(X)
-        
         if return_components:
-            components = np.zeros((n_samples, len(self.splines)))
-        else:
-            total_value = np.zeros(n_samples)
-        
+            return self._predict_components(X)
+        return self._predict_total(X)
+
+    def _predict_components(self, X: pl.DataFrame) -> np.ndarray:
+        """Calculate predictions for each spline individually."""
+        n_samples = len(X)
+        components = np.zeros((n_samples, len(self.splines)))
         for i, spline in enumerate(self.splines):
-            self._validate_term_in_dataframe(spline.term, X)
-            
-            x_data = X[spline.term].to_numpy()
-            
-            # Evaluate spline expression and get value
-            spline_expr = spline(x_data)
-            spline_val = spline_expr.value
-            
-            if spline_val is None:
-                 print(f"Warning: Spline for term {spline.term} has no value. Using zeros.")
-                 spline_val = np.zeros(n_samples)
+            components[:, i] = self._evaluate_spline(spline, X)
+        return components
+
+    def _predict_total(self, X: pl.DataFrame) -> np.ndarray:
+        """Calculate total predictions by summing all spline components."""
+        n_samples = len(X)
+        total_value = np.zeros(n_samples)
+        for spline in self.splines:
+            total_value += self._evaluate_spline(spline, X)
+        return total_value
+
+    def _evaluate_spline(self, spline: "base_spline.Spline", X: pl.DataFrame) -> np.ndarray:
+        """Evaluate a single spline on the input data."""
+        self._validate_term_in_dataframe(spline.term, X)
+        x_data = X[spline.term].to_numpy()
+        
+        spline_expr = spline(x_data)
+        spline_val = spline_expr.value
+        
+        if spline_val is None:
+             print(f"Warning: Spline for term {spline.term} has no value. Using zeros.")
+             return np.zeros(len(X))
              
-            if return_components:
-                components[:, i] = spline_val
-            else:
-                total_value += spline_val
-                
-        return components if return_components else total_value
+        return spline_val
 
     def __add__(self, other: Union["base_spline.Spline", "LpRegressor"]) -> "LpRegressor":
         """
