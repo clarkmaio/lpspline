@@ -39,9 +39,10 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Resources:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">lpspline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
 </ul>
 
         </div>
@@ -75,7 +76,7 @@
 <span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">Constraint</span>
 
 <div class="viewcode-block" id="Anchor">
-<a class="viewcode-back" href="../../../lpspline.constraints.html#lpspline.constraints.anchor.Anchor">[docs]</a>
+<a class="viewcode-back" href="../../../api.html#lpspline.constraints.Anchor">[docs]</a>
 <span class="k">class</span> <span class="nc">Anchor</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xy</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -87,7 +88,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;xy must not be empty&quot;</span><span class="p">)</span>
             
 <div class="viewcode-block" id="Anchor.build_constraint">
-<a class="viewcode-back" href="../../../lpspline.constraints.html#lpspline.constraints.anchor.Anchor.build_constraint">[docs]</a>
+<a class="viewcode-back" href="../../../api.html#lpspline.constraints.Anchor.build_constraint">[docs]</a>
     <span class="k">def</span> <span class="nf">build_constraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
         <span class="n">constraints</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">basis</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">_build_basis</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">xy</span><span class="p">]))</span>

@@ -39,9 +39,10 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Resources:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">lpspline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
 </ul>
 
         </div>
@@ -78,7 +79,7 @@
 <span class="kn">from</span> <span class="nn">.summary</span> <span class="kn">import</span> <span class="n">print_summary</span>
 
 <div class="viewcode-block" id="LpRegressor">
-<a class="viewcode-back" href="../../../lpspline.optimizer.html#lpspline.optimizer.regressor.LpRegressor">[docs]</a>
+<a class="viewcode-back" href="../../../api.html#lpspline.optimizer.regressor.LpRegressor">[docs]</a>
 <span class="k">class</span> <span class="nc">LpRegressor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    LpRegressor class to fit linear spline models using convex optimization.</span>
@@ -109,7 +110,7 @@
 
 
 <div class="viewcode-block" id="LpRegressor.get_spline">
-<a class="viewcode-back" href="../../../lpspline.optimizer.html#lpspline.optimizer.regressor.LpRegressor.get_spline">[docs]</a>
+<a class="viewcode-back" href="../../../api.html#lpspline.optimizer.regressor.LpRegressor.get_spline">[docs]</a>
     <span class="k">def</span> <span class="nf">get_spline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">base_spline</span><span class="o">.</span><span class="n">Spline</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns the spline with the given tag.</span>
@@ -122,7 +123,7 @@
         
 
 <div class="viewcode-block" id="LpRegressor.fit">
-<a class="viewcode-back" href="../../../lpspline.optimizer.html#lpspline.optimizer.regressor.LpRegressor.fit">[docs]</a>
+<a class="viewcode-back" href="../../../api.html#lpspline.optimizer.regressor.LpRegressor.fit">[docs]</a>
     <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Fit the additive model to the data.</span>
@@ -149,7 +150,7 @@
 
 
 <div class="viewcode-block" id="LpRegressor.predict">
-<a class="viewcode-back" href="../../../lpspline.optimizer.html#lpspline.optimizer.regressor.LpRegressor.predict">[docs]</a>
+<a class="viewcode-back" href="../../../api.html#lpspline.optimizer.regressor.LpRegressor.predict">[docs]</a>
     <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">return_components</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Predict target values for new data.</span>

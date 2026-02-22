@@ -39,9 +39,10 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Resources:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">lpspline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
 </ul>
 
         </div>
@@ -76,7 +77,7 @@
 <span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">Spline</span>
 
 <div class="viewcode-block" id="BSpline">
-<a class="viewcode-back" href="../../../lpspline.spline.html#lpspline.spline.bspline.BSpline">[docs]</a>
+<a class="viewcode-back" href="../../../api.html#lpspline.spline.bspline.BSpline">[docs]</a>
 <span class="k">class</span> <span class="nc">BSpline</span><span class="p">(</span><span class="n">Spline</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    B-Spline implementation using the Cox-de Boor recursion algorithm.</span>
@@ -101,7 +102,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_knots</span>
 
 <div class="viewcode-block" id="BSpline.init_spline">
-<a class="viewcode-back" href="../../../lpspline.spline.html#lpspline.spline.bspline.BSpline.init_spline">[docs]</a>
+<a class="viewcode-back" href="../../../api.html#lpspline.spline.bspline.BSpline.init_spline">[docs]</a>
     <span class="k">def</span> <span class="nf">init_spline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">by</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knots</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_knots</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_knots</span><span class="p">)</span>

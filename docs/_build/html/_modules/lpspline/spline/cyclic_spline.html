@@ -39,9 +39,10 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Resources:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">lpspline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
 </ul>
 
         </div>
@@ -76,7 +77,7 @@
 <span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">Spline</span>
 
 <div class="viewcode-block" id="CyclicSpline">
-<a class="viewcode-back" href="../../../lpspline.spline.html#lpspline.spline.cyclic_spline.CyclicSpline">[docs]</a>
+<a class="viewcode-back" href="../../../api.html#lpspline.spline.cyclic_spline.CyclicSpline">[docs]</a>
 <span class="k">class</span> <span class="nc">CyclicSpline</span><span class="p">(</span><span class="n">Spline</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">period</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;cyclicspline&#39;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">term</span><span class="o">=</span><span class="n">term</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">tag</span><span class="p">)</span>
@@ -93,7 +94,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order</span>
 
 <div class="viewcode-block" id="CyclicSpline.init_spline">
-<a class="viewcode-back" href="../../../lpspline.spline.html#lpspline.spline.cyclic_spline.CyclicSpline.init_spline">[docs]</a>
+<a class="viewcode-back" href="../../../api.html#lpspline.spline.cyclic_spline.CyclicSpline.init_spline">[docs]</a>
     <span class="k">def</span> <span class="nf">init_spline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">by</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_period</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_period</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>

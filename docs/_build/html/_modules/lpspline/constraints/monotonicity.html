@@ -39,9 +39,10 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Resources:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">lpspline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
 </ul>
 
         </div>
@@ -74,13 +75,13 @@
 <span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">Constraint</span>
 
 <div class="viewcode-block" id="Monotonic">
-<a class="viewcode-back" href="../../../lpspline.constraints.html#lpspline.constraints.monotonicity.Monotonic">[docs]</a>
+<a class="viewcode-back" href="../../../api.html#lpspline.constraints.Monotonic">[docs]</a>
 <span class="k">class</span> <span class="nc">Monotonic</span><span class="p">(</span><span class="n">Constraint</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decreasing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decreasing</span> <span class="o">=</span> <span class="n">decreasing</span>
         
 <div class="viewcode-block" id="Monotonic.build_constraint">
-<a class="viewcode-back" href="../../../lpspline.constraints.html#lpspline.constraints.monotonicity.Monotonic.build_constraint">[docs]</a>
+<a class="viewcode-back" href="../../../api.html#lpspline.constraints.Monotonic.build_constraint">[docs]</a>
     <span class="k">def</span> <span class="nf">build_constraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
         <span class="kn">from</span> <span class="nn">..spline</span> <span class="kn">import</span> <span class="n">Linear</span><span class="p">,</span> <span class="n">PiecewiseLinear</span><span class="p">,</span> <span class="n">BSpline</span>
         <span class="n">variables</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">_build_variables</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>

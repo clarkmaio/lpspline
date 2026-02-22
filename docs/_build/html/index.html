@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to lpspline’s documentation! &mdash; lpspline 0.0.6 documentation</title>
+  <title>LPSpline Documentation &mdash; lpspline 0.0.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
@@ -19,7 +19,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lpspline" href="modules.html" /> 
+    <link rel="next" title="User Guide" href="user_guide.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -41,9 +41,10 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Resources:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">lpspline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 </ul>
 
         </div>
@@ -60,7 +61,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Welcome to lpspline’s documentation!</li>
+      <li class="breadcrumb-item active">LPSpline Documentation</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -70,32 +71,88 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="welcome-to-lpspline-s-documentation">
-<h1>Welcome to lpspline’s documentation!<a class="headerlink" href="#welcome-to-lpspline-s-documentation" title="Link to this heading"></a></h1>
+  <section id="lpspline-documentation">
+<h1>LPSpline Documentation<a class="headerlink" href="#lpspline-documentation" title="Link to this heading"></a></h1>
+<p>LPSpline is a Python package for building and optimizing linear spline models using an intuitive additive API. It provides a flexible way to model non-linear relationships using various spline types like Piecewise Linear, B-Splines, Cyclic Splines, and Categorical Factors.</p>
+<p>It uses a powerful <cite>CVXPY</cite> backend to formulate and solve the mathematical optimization problems behind the scenes.</p>
+<section id="features">
+<h2>Features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Intitutive Additive Model Definition</p></li>
+<li><p>Supports Linear, Piecewise Linear, B-Splines, Cyclic Splines, Categorical Factors, and Constants.</p></li>
+<li><p>Supports Shape Constraints: Monotonicity, Convexity, Concavity, Anchoring</p></li>
+<li><p>Supports Penalties: Ridge, Lasso</p></li>
+<li><p>First-class support for <cite>polars</cite> DataFrames</p></li>
+<li><p>Built-in diagnostic visualizations</p></li>
+</ul>
+</section>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
+<p>Here is a small complete example demonstrating the core features:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">polars</span> <span class="k">as</span> <span class="nn">pl</span>
+<span class="kn">from</span> <span class="nn">lpspline</span> <span class="kn">import</span> <span class="n">l</span><span class="p">,</span> <span class="n">pwl</span><span class="p">,</span> <span class="n">bs</span><span class="p">,</span> <span class="n">cs</span><span class="p">,</span> <span class="n">f</span>
+<span class="kn">from</span> <span class="nn">lpspline.viz</span> <span class="kn">import</span> <span class="n">plot_diagnostic</span>
+
+<span class="c1"># Data Generation</span>
+<span class="n">n</span> <span class="o">=</span> <span class="mi">1000</span>
+<span class="n">x_linear</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="n">x_pwl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="n">x_bs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="n">x_cyc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="n">x_factor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+
+<span class="n">y</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">x_linear</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">x_pwl</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x_pwl</span> <span class="o">-</span> <span class="mi">5</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x_bs</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">x_cyc</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])[</span><span class="n">x_factor</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;xl&quot;</span><span class="p">:</span> <span class="n">x_linear</span><span class="p">,</span> <span class="s2">&quot;xpwl&quot;</span><span class="p">:</span> <span class="n">x_pwl</span><span class="p">,</span> <span class="s2">&quot;xbs&quot;</span><span class="p">:</span> <span class="n">x_bs</span><span class="p">,</span> <span class="s2">&quot;xcyc&quot;</span><span class="p">:</span> <span class="n">x_cyc</span><span class="p">,</span> <span class="s2">&quot;xfactor&quot;</span><span class="p">:</span> <span class="n">x_factor</span><span class="p">,</span> <span class="s2">&quot;target&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">})</span>
+
+<span class="c1"># Model Definition</span>
+<span class="n">model</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="o">+</span> <span class="n">l</span><span class="p">(</span><span class="n">term</span><span class="o">=</span><span class="s1">&#39;xl&#39;</span><span class="p">)</span>
+    <span class="o">+</span> <span class="n">pwl</span><span class="p">(</span><span class="n">term</span><span class="o">=</span><span class="s1">&#39;xpwl&#39;</span><span class="p">,</span> <span class="n">knots</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="o">+</span> <span class="n">bs</span><span class="p">(</span><span class="n">term</span><span class="o">=</span><span class="s2">&quot;xbs&quot;</span><span class="p">,</span> <span class="n">knots</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="o">+</span> <span class="n">cs</span><span class="p">(</span><span class="n">term</span><span class="o">=</span><span class="s2">&quot;xcyc&quot;</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="o">+</span> <span class="n">f</span><span class="p">(</span><span class="n">term</span><span class="o">=</span><span class="s2">&quot;xfactor&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="c1"># Fitting</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;target&quot;</span><span class="p">])</span>
+<span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+<span class="c1"># Visualization</span>
+<span class="n">plot_diagnostic</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">X</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">],</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="navigation">
+<h2>Navigation<a class="headerlink" href="#navigation" title="Link to this heading"></a></h2>
 <div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Resources:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">lpspline</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="lpspline.html">lpspline package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html">User Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user_guide.html#additive-model-definition">Additive Model Definition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide.html#constraints">Constraints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide.html#penalties">Penalties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide.html#model-fitting">Model Fitting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#main-regressor">Main Regressor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#spline-fundamentals">Spline Fundamentals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#constraints">Constraints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#penalties">Penalties</a></li>
 </ul>
 </li>
 </ul>
 </div>
 </section>
-<section id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h1>
-<ul class="simple">
-<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
-<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
-<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
-</ul>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="modules.html" class="btn btn-neutral float-right" title="lpspline" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="user_guide.html" class="btn btn-neutral float-right" title="User Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
