@@ -19,6 +19,13 @@ class Spline(abc.ABC):
         self.tag = tag
         self.constraints = []
 
+    @property
+    def coefficients(self) -> np.ndarray:
+        """
+        Returns the coefficients of the spline.
+        """
+        return np.array(self._variables[0].value).flatten()
+
     def add_constraint(self, *constraints):
         """
         Takes in input Constraints.
@@ -41,6 +48,15 @@ class Spline(abc.ABC):
                 
             self.constraints.append(c)
         return self
+
+    def add_penalty(self, *penalties):
+        """
+        Takes in input Penalties.
+        Not all splines can accept all penalties.
+        Raises ValueError depending on the spline type and penalty.
+        """
+        from ..penalties import Penalty
+        raise NotImplementedError("add_penalty not implemented for this spline type.")
 
     @abc.abstractmethod
     def _build_basis(self, x: np.ndarray) -> np.ndarray:
@@ -82,6 +98,25 @@ class Spline(abc.ABC):
             raise ValueError("No variables defined for this spline.")
             
         return basis @ variables[0]
+
+    def eval(self, x: np.ndarray, return_basis: bool = False) -> np.ndarray:
+        """
+        Evaluates the spline expression for the given input x.
+
+        Args:
+            x: Input feature array.
+
+        Returns:
+            A numpy array of shape (n_samples,) representing the spline values.
+        
+        Raises:
+            ValueError: If no variables are defined for the spline.
+        """
+        assert self.coefficients is not None, "Spline has not been fitted."
+        basis = self._build_basis(x)
+        if return_basis:
+            return basis * self.coefficients
+        return basis @ self.coefficients
 
     def __add__(self, other):
         """
