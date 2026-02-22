@@ -20,3 +20,5 @@ deployinstructions.md
 .venv
 
 __pycache__
+# Sphinx
+docs/_build/
