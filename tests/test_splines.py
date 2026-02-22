@@ -65,12 +65,12 @@ class TestSplines:
         
         x = np.array([0.5, 1.5, 2.5, 3.5])
         basis = spline._build_basis(x)
-        # 5 knots, degree 1 -> 5-1-1 = 3 basis functions
-        assert basis.shape == (4, 3)
+        # 5 knots, degree 1 -> 5+1-1 = 5 basis functions due to padding
+        assert basis.shape == (4, 5)
         
         vars = spline._build_variables()
         assert len(vars) == 1
-        assert vars[0].shape == (3,)
+        assert vars[0].shape == (5,)
 
     def test_cyclic_spline(self):
         period = 4.0

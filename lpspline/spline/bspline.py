@@ -22,6 +22,23 @@ class BSpline(Spline):
         self.degree = degree
         self._variables = []
 
+
+    def _pad_knots(self, knots: np.ndarray, degree: int) -> np.ndarray:
+        """
+        Pad the knots so the final splines span the provided input knots
+        """
+        t_input = knots
+        k = degree
+
+        lowstep = t_input[1] - t_input[0]
+        highstep = t_input[-1] - t_input[-2]
+
+        for i in range(k):
+            t_input = np.insert(t_input, 0, t_input[0] - lowstep)
+            t_input = np.insert(t_input, -1, t_input[-1] + highstep)
+            
+        return t_input
+
     def _build_basis(self, x: np.ndarray) -> np.ndarray:
         """
         Builds the B-Spline basis functions using Cox-de Boor recursion.
@@ -32,15 +49,16 @@ class BSpline(Spline):
         Returns:
             Basis matrix with shape (n_samples, n_basis_funcs).
         """
-        t = self.knots
+        t = self._pad_knots(self.knots, self.degree)
         k = self.degree
+        
         x = np.array(x).flatten()
         n = len(x)
         m = len(t)
         
         num_basis = m - k - 1
         if num_basis <= 0:
-             raise ValueError("Not enough knots for the given degree. Need len(knots) > degree + 1")
+             raise ValueError(f"Not enough knots for the given degree. Need len(knots) > degree + 1")
 
         b = self._initialize_basis(x, t, n, m)
 
@@ -94,7 +112,7 @@ class BSpline(Spline):
         Create cvxpy variables for the spline coefficients.
         """
         if not self._variables:
-            dim = len(self.knots) - self.degree - 1
+            dim = len(self.knots) + self.degree - 1
             if dim <= 0:
                  raise ValueError(f"Invalid knots/degree config: len(knots)={len(self.knots)}, degree={self.degree}. Dim would be {dim}")
             self._variables = [cp.Variable(shape=(dim,), name=f"{self.term}_bspline")]

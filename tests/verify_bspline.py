@@ -1,7 +1,8 @@
 
 import polars as pl
 import numpy as np
-from lpspline import BSpline, LpRegressor
+from lpspline.spline import BSpline
+from lpspline import LpRegressor
 
 def test_bspline_refactoring():
     # 1. Generate data
