@@ -62,3 +62,25 @@ After defining the components, you fit the model using the ``LpRegressor``. The 
 
    # Predict on new data
    predictions = regressor.predict(df_test)
+
+Data-Driven Initialization
+--------------------------
+
+A powerful feature of LPSpline is that it natively supports data-driven initialization.
+
+For example, if you define a B-Spline as ``bs(term='x', knots=5)``, you don't need to specify the exact knot locations. Behind the scenes, the `.fit()` method automatically calls the `.init_spline(x)` method on every component. This determines the exact knot locations based on the distribution of your input data!
+
+Visualization
+-------------
+
+LPSpline comes with a built-in visualization tool to help you diagnose and understand the fitted splines. The ``plot_diagnostic`` function leverages `matplotlib` and `pimpmyplot` to generate beautiful component plots.
+
+.. code-block:: python
+
+   from lpspline.viz import plot_diagnostic
+   
+   plot_diagnostic(model=regressor, X=df, y=df['target'], ncols=3)
+
+.. image:: _static/demo_plot.png
+   :alt: LPSpline Diagnostic Plot
+   :align: center
