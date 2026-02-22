@@ -1,0 +1,319 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lpspline.optimizer.regressor &mdash; lpspline 0.0.6 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=1fd71caa"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            lpspline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">lpspline</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lpspline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">lpspline.optimizer.regressor</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for lpspline.optimizer.regressor</h1><div class="highlight"><pre>
+<span></span>
+<span class="kn">import</span> <span class="nn">polars</span> <span class="k">as</span> <span class="nn">pl</span>
+<span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">..spline</span> <span class="kn">import</span> <span class="n">base</span> <span class="k">as</span> <span class="n">base_spline</span>
+<span class="kn">from</span> <span class="nn">.summary</span> <span class="kn">import</span> <span class="n">print_summary</span>
+
+<div class="viewcode-block" id="LpRegressor">
+<a class="viewcode-back" href="../../../lpspline.optimizer.html#lpspline.optimizer.regressor.LpRegressor">[docs]</a>
+<span class="k">class</span> <span class="nc">LpRegressor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    LpRegressor class to fit linear spline models using convex optimization.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">splines</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="s2">&quot;base_spline.Spline&quot;</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="s2">&quot;base_spline.Spline&quot;</span><span class="p">]]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the LpRegressor.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            splines: A single Spline object or a list of Spline objects.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">splines</span><span class="p">,</span> <span class="n">base_spline</span><span class="o">.</span><span class="n">Spline</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">splines</span> <span class="o">=</span> <span class="p">[</span><span class="n">splines</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">splines</span> <span class="o">=</span> <span class="n">splines</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_tags</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">problem</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">Problem</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_check_tags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if all splines have unique tags.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tags</span> <span class="o">=</span> <span class="p">[</span><span class="n">spline</span><span class="o">.</span><span class="n">tag</span> <span class="k">for</span> <span class="n">spline</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">splines</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">tags</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;All splines must have unique tags.&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="LpRegressor.get_spline">
+<a class="viewcode-back" href="../../../lpspline.optimizer.html#lpspline.optimizer.regressor.LpRegressor.get_spline">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_spline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">base_spline</span><span class="o">.</span><span class="n">Spline</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the spline with the given tag.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">spline</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">splines</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">spline</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="n">tag</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">spline</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Spline with tag &#39;</span><span class="si">{</span><span class="n">tag</span><span class="si">}</span><span class="s2">&#39; not found.&quot;</span><span class="p">)</span></div>
+
+        
+
+<div class="viewcode-block" id="LpRegressor.fit">
+<a class="viewcode-back" href="../../../lpspline.optimizer.html#lpspline.optimizer.regressor.LpRegressor.fit">[docs]</a>
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fit the additive model to the data.</span>
+
+<span class="sd">        Minimizes the L2 norm of the difference between the sum of spline terms and the target y.</span>
+<span class="sd">        ||Sum(Spline_i(X)) - y||_2</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            X: Input DataFrame containing the features.</span>
+<span class="sd">            y: Target Series.</span>
+<span class="sd">        </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If no splines are provided or if required columns are missing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_input</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">spline</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">splines</span><span class="p">:</span>
+            <span class="n">spline</span><span class="o">.</span><span class="n">init_spline</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">spline</span><span class="o">.</span><span class="n">term</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
+
+        <span class="n">total_expression</span><span class="p">,</span> <span class="n">summary_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_model_expression</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_solve_problem</span><span class="p">(</span><span class="n">total_expression</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>        
+        <span class="n">print_summary</span><span class="p">(</span><span class="n">summary_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">problem</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LpRegressor.predict">
+<a class="viewcode-back" href="../../../lpspline.optimizer.html#lpspline.optimizer.regressor.LpRegressor.predict">[docs]</a>
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">return_components</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Predict target values for new data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            X: Input DataFrame.</span>
+<span class="sd">            return_components: If True, returns a matrix where each column corresponds to a spline&#39;s output.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Numpy array of predictions. </span>
+<span class="sd">            If return_components is True, shape (n_samples, n_splines).</span>
+<span class="sd">            Else, shape (n_samples,).</span>
+<span class="sd">        </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If required columns are missing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">return_components</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_components</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_total</span><span class="p">(</span><span class="n">X</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_predict_components</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate predictions for each spline individually.&quot;&quot;&quot;</span>
+        <span class="n">n_samples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">components</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_samples</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">splines</span><span class="p">)))</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">spline</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">splines</span><span class="p">):</span>
+            <span class="n">components</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_evaluate_spline</span><span class="p">(</span><span class="n">spline</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">components</span>
+
+    <span class="k">def</span> <span class="nf">_predict_total</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate total predictions by summing all spline components.&quot;&quot;&quot;</span>
+        <span class="n">n_samples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">total_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">spline</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">splines</span><span class="p">:</span>
+            <span class="n">total_value</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_evaluate_spline</span><span class="p">(</span><span class="n">spline</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">total_value</span>
+
+    <span class="k">def</span> <span class="nf">_evaluate_spline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spline</span><span class="p">:</span> <span class="s2">&quot;base_spline.Spline&quot;</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate a single spline on the input data.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_term_in_dataframe</span><span class="p">(</span><span class="n">spline</span><span class="o">.</span><span class="n">term</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span>
+        <span class="n">x_data</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">spline</span><span class="o">.</span><span class="n">term</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+        
+        <span class="n">spline_expr</span> <span class="o">=</span> <span class="n">spline</span><span class="p">(</span><span class="n">x_data</span><span class="p">)</span>
+        <span class="n">spline_val</span> <span class="o">=</span> <span class="n">spline_expr</span><span class="o">.</span><span class="n">value</span>
+        
+        <span class="k">if</span> <span class="n">spline_val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Warning: Spline for term </span><span class="si">{</span><span class="n">spline</span><span class="o">.</span><span class="n">term</span><span class="si">}</span><span class="s2"> has no value. Using zeros.&quot;</span><span class="p">)</span>
+             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">))</span>
+             
+        <span class="k">return</span> <span class="n">spline_val</span>
+
+    <span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="s2">&quot;base_spline.Spline&quot;</span><span class="p">,</span> <span class="s2">&quot;LpRegressor&quot;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;LpRegressor&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a Spline or another LpRegressor to this LpRegressor.</span>
+<span class="sd">        Allows syntax like: model = spline1 + spline2</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">base_spline</span><span class="o">.</span><span class="n">Spline</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">splines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">LpRegressor</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">splines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">splines</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">else</span><span class="p">:</span>
+             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot add LpRegressor and </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;LpRegressor(splines=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">splines</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_validate_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Ensure there are splines to fit.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">splines</span><span class="p">:</span>
+             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No splines to fit.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate_term_in_dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the term exists in the DataFrame columns.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">term</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">X</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Term </span><span class="si">{</span><span class="n">term</span><span class="si">}</span><span class="s2"> not found in input DataFrame columns: </span><span class="si">{</span><span class="n">X</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_build_model_expression</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">Expression</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct the cvxpy expression for the model and collect summary info.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple containing the total cvxpy expression and a list of summary dictionaries.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">total_expression</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">summary_data</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">spline</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">splines</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate_term_in_dataframe</span><span class="p">(</span><span class="n">spline</span><span class="o">.</span><span class="n">term</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span>
+            
+            <span class="n">x_data</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">spline</span><span class="o">.</span><span class="n">term</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+            <span class="n">spline_expr</span> <span class="o">=</span> <span class="n">spline</span><span class="p">(</span><span class="n">x_data</span><span class="p">)</span>
+            
+            <span class="c1"># Collect info for summary</span>
+            <span class="n">num_params</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">size</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">spline</span><span class="o">.</span><span class="n">_variables</span><span class="p">)</span>
+            <span class="n">constraint_names</span> <span class="o">=</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">spline</span><span class="o">.</span><span class="n">constraints</span><span class="p">]</span>
+            <span class="n">constraints_str</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">constraint_names</span><span class="p">)</span> <span class="k">if</span> <span class="n">constraint_names</span> <span class="k">else</span> <span class="s2">&quot;None&quot;</span>
+            <span class="n">penalty_names</span> <span class="o">=</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">spline</span><span class="p">,</span> <span class="s1">&#39;penalties&#39;</span><span class="p">,</span> <span class="p">[])]</span>
+            <span class="n">penalties_str</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">penalty_names</span><span class="p">)</span> <span class="k">if</span> <span class="n">penalty_names</span> <span class="k">else</span> <span class="s2">&quot;None&quot;</span>
+            
+            <span class="n">summary_data</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s2">&quot;Spline Type&quot;</span><span class="p">:</span> <span class="nb">type</span><span class="p">(</span><span class="n">spline</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                <span class="s2">&quot;Term&quot;</span><span class="p">:</span> <span class="n">spline</span><span class="o">.</span><span class="n">term</span><span class="p">,</span>
+                <span class="s2">&quot;Tag&quot;</span><span class="p">:</span> <span class="n">spline</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span>
+                <span class="s2">&quot;Parameters&quot;</span><span class="p">:</span> <span class="n">num_params</span><span class="p">,</span>
+                <span class="s2">&quot;Constraints&quot;</span><span class="p">:</span> <span class="n">constraints_str</span><span class="p">,</span>
+                <span class="s2">&quot;Penalties&quot;</span><span class="p">:</span> <span class="n">penalties_str</span>
+            <span class="p">})</span>
+            
+            <span class="n">total_expression</span> <span class="o">+=</span> <span class="n">spline_expr</span>
+            
+        <span class="k">return</span> <span class="n">total_expression</span><span class="p">,</span> <span class="n">summary_data</span>
+
+    <span class="k">def</span> <span class="nf">_solve_problem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expression</span><span class="p">:</span> <span class="n">cp</span><span class="o">.</span><span class="n">Expression</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set up and solve the convex optimization problem.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">y_np</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+        
+        <span class="n">main_loss</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">sum_squares</span><span class="p">(</span><span class="n">expression</span> <span class="o">-</span> <span class="n">y_np</span><span class="p">)</span>
+        <span class="n">penalty_loss</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="n">all_constraints</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">spline</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">splines</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">spline</span><span class="o">.</span><span class="n">constraints</span><span class="p">:</span>
+                <span class="n">all_constraints</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">build_constraint</span><span class="p">(</span><span class="n">spline</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">spline</span><span class="p">,</span> <span class="s1">&#39;penalties&#39;</span><span class="p">,</span> <span class="p">[]):</span>
+                <span class="k">for</span> <span class="n">p_expr</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">build_penalty</span><span class="p">(</span><span class="n">spline</span><span class="p">):</span>
+                    <span class="n">penalty_loss</span> <span class="o">+=</span> <span class="n">p_expr</span>
+                    
+        <span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">main_loss</span> <span class="o">+</span> <span class="n">penalty_loss</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">problem</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">all_constraints</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span></div>
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, clarkmaio.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
