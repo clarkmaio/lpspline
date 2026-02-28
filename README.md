@@ -17,7 +17,7 @@ pip install lpspline
 - CVXPY backend for optimization
 - Multiple spline types: Linear, Piecewise Linear, B-Splines, Cyclic Splines, Categorical Factors, Constant
 - Penalties on the splines: Ridge, Lasso
-- Constraints on the splines: Monotonic, Anchor
+- Constraints on the splines: Monotonic, Convex, Concave, Anchor
 - Polars DataFrame integration
 - Nice plots using `matplotlib` and `pimpmyplot`
 

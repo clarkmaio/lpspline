@@ -28,13 +28,19 @@ You can force a spline component to behave in specific ways using constraints us
 
 .. code-block:: python
 
-   from lpspline.constraints import Monotonic, Convex
+   from lpspline.constraints import Monotonic, Convex, Concave, Anchor
 
-   # Force increasing relationship
-   model = pwl(term='income', knots=5).add_constraint(Monotonic(1))
+   # Force increasing relationship (or decreasing with decreasing=True)
+   model = pwl(term='income', knots=5).add_constraint(Monotonic())
 
    # Force convex relationship
    model = bs(term='experience', knots=10, degree=3).add_constraint(Convex())
+
+   # Force concave relationship
+   model = bs(term='experience', knots=10, degree=3).add_constraint(Concave())
+
+   # Anchor to specific coordinates, e.g. f(0) = 0
+   model = l(term='age').add_constraint(Anchor((0.0, 0.0)))
 
 Penalties
 ---------
