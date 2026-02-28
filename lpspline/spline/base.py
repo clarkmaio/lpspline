@@ -92,7 +92,7 @@ class Spline(abc.ABC):
             if isinstance(self, (CyclicSpline, Factor)):
                 if isinstance(c, (Monotonic, Convex, Concave)):
                     raise ValueError(f"{type(self).__name__} cannot accept {type(c).__name__} constraint.")
-            if isinstance(self, (Linear, PiecewiseLinear)):
+            if isinstance(self, (Linear)):
                 if isinstance(c, (Convex, Concave)):
                     raise ValueError(f"{type(self).__name__} cannot accept {type(c).__name__} constraint.")
                 
