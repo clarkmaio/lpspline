@@ -22,3 +22,5 @@ deployinstructions.md
 __pycache__
 # Sphinx
 docs/_build/
+# MkDocs
+site/
