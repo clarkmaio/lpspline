@@ -9,20 +9,19 @@ class TestSplines:
     
     def test_linear_spline(self):
         spline = Linear(term="x", bias=True)
-        assert repr(spline) == "Linear(term='x', bias=True)"
+        assert repr(spline) == "Linear(term='x', bias=True, by=None)"
         
         x = np.array([0, 1, 2])
         basis = spline._build_basis(x)
         assert basis.shape == (3, 2)
-        assert np.allclose(basis, [[0, 1], [1, 1], [2, 1]])
+        assert np.allclose(basis, [[1, 0], [1, 1], [1, 2]])
         
         vars = spline._build_variables()
-        assert len(vars) == 1
-        assert vars[0].shape == (2,)
+        assert vars.shape == (2,)
 
     def test_linear_spline_no_bias(self):
         spline = Linear(term="x", bias=False)
-        assert repr(spline) == "Linear(term='x', bias=False)"
+        assert repr(spline) == "Linear(term='x', bias=False, by=None)"
         
         x = np.array([0, 1, 2])
         basis = spline._build_basis(x)
@@ -30,13 +29,12 @@ class TestSplines:
         assert np.allclose(basis, [[0], [1], [2]])
         
         vars = spline._build_variables()
-        assert len(vars) == 1
-        assert vars[0].shape == (1,)
+        assert vars.shape == (1,)
 
     def test_piecewise_linear_spline(self):
         knots = [1.0]
         spline = PiecewiseLinear(term="x", knots=knots)
-        assert repr(spline) == "PiecewiseLinear(term='x', knots=[1.0])"
+        assert repr(spline) == "PiecewiseLinear(term='x', knots=[1.0], by=None)"
         
         x = np.array([0, 1, 2])
         basis = spline._build_basis(x)
@@ -53,8 +51,7 @@ class TestSplines:
         assert np.allclose(basis, expected)
         
         vars = spline._build_variables()
-        assert len(vars) == 1
-        assert vars[0].shape == (3,)
+        assert vars.shape == (3,)
 
     def test_bspline(self):
         # Knots: 0, 1, 2, 3, 4. Degree 1 (linear B-splines)
@@ -69,14 +66,13 @@ class TestSplines:
         assert basis.shape == (4, 5)
         
         vars = spline._build_variables()
-        assert len(vars) == 1
-        assert vars[0].shape == (5,)
+        assert vars.shape == (5,)
 
     def test_cyclic_spline(self):
         period = 4.0
         order = 1
         spline = CyclicSpline(term="x", period=period, order=order)
-        assert repr(spline) == f"CyclicSpline(term='x', period={period}, order={order})"
+        assert repr(spline) == f"CyclicSpline(term='x', period={period}, order={order}, by=None)"
         
         x = np.array([0, 1, 2, 3])
         basis = spline._build_basis(x)
@@ -87,8 +83,7 @@ class TestSplines:
         assert np.allclose(basis[:, 0], 1)
         
         vars = spline._build_variables()
-        assert len(vars) == 1
-        assert vars[0].shape == (3,)
+        assert vars.shape == (3,)
 
     def test_factor_spline(self):
         n_classes = 3
@@ -108,8 +103,7 @@ class TestSplines:
         assert np.allclose(basis, expected)
         
         vars = spline._build_variables()
-        assert len(vars) == 1
-        assert vars[0].shape == (3,)
+        assert vars.shape == (3,)
 
     def test_optimizer_repr(self):
         s1 = Linear("a")

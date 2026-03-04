@@ -7,7 +7,7 @@ from lpspline.constraints import Anchor, Monotonic, Convex, Concave
 
 class TestConstraints:
     def test_anchor(self):
-        s = Linear("x", bias=True).add_constraint(Anchor([(0.0, 10.0)]))
+        s = Linear("x", bias=True).add_constraint(Anchor((0.0, 10.0)))
         assert len(s.constraints) == 1
 
     def test_invalid_constraints(self):
@@ -15,7 +15,7 @@ class TestConstraints:
             Linear("x").add_constraint(Convex())
             
         with pytest.raises(ValueError, match="cannot accept Concave constraint"):
-            PiecewiseLinear("x", knots=[1.0]).add_constraint(Concave())
+            Linear("x").add_constraint(Concave())
 
         with pytest.raises(ValueError, match="cannot accept Monotonic constraint"):
             CyclicSpline("x", period=24, order=4).add_constraint(Monotonic())

@@ -8,7 +8,7 @@ class BSpline(Spline):
     """
     B-Spline implementation using the Cox-de Boor recursion algorithm.
     """
-    def __init__(self, term: str, knots: Union[int, np.ndarray], degree: int = 3, tag: Optional[str] = 'bspline'):
+    def __init__(self, term: str, knots: Union[int, np.ndarray], degree: int = 3, by: Optional[str] = None, tag: Optional[str] = 'bspline'):
         """
         Initialize the B-Spline.
         
@@ -19,19 +19,32 @@ class BSpline(Spline):
         """
         super().__init__(term=term, tag=tag)
         self._knots = knots
-        self.degree = degree
+        self._degree = degree
+        self._by = by
+        self._by_classes = None
         self._variables = []
 
+    @property
+    def degree(self):
+        return self._degree
+
+    @property
+    def by(self):
+        return self._by
 
     @property
     def knots(self):
         return self._knots
+        
 
     def init_spline(self, x: np.ndarray, by: np.ndarray = None):
         if isinstance(self._knots, int):
             self._knots = np.linspace(np.min(x), np.max(x), self._knots)
         else:
             self._knots = np.sort(self._knots)
+
+        if self._by is not None:
+            self._by_classes = np.unique(by)
 
 
     def _pad_knots(self, knots: np.ndarray, degree: int) -> np.ndarray:
@@ -50,7 +63,7 @@ class BSpline(Spline):
             
         return t_input
 
-    def _build_basis(self, x: np.ndarray) -> np.ndarray:
+    def _build_basis(self, x: np.ndarray, **kwargs) -> np.ndarray:
         """
         Builds the B-Spline basis functions using Cox-de Boor recursion.
         
@@ -60,7 +73,7 @@ class BSpline(Spline):
         Returns:
             Basis matrix with shape (n_samples, n_basis_funcs).
         """
-        t = self._pad_knots(self.knots, self.degree)
+        t = self._pad_knots(self.knots, self.degree) # knots of degree 0 base basis
         k = self.degree
         
         x = np.array(x).flatten()
@@ -75,9 +88,9 @@ class BSpline(Spline):
 
         # Recursive step
         for p in range(1, k + 1):
-            b = self._compute_next_degree_basis(b, x, t, p, n, m)
-            
-        return b
+            b = self._compute_next_degree_basis(b_prev=b, x=x, t=t, p=p, n=n, m=m)
+        base_basis = b
+        return base_basis
 
 
     def _initialize_basis(self, x: np.ndarray, t: np.ndarray, n: int, m: int) -> np.ndarray:
@@ -97,8 +110,8 @@ class BSpline(Spline):
         """
         b_new = np.zeros((n, m - p - 1))
         for i in range(m - p - 1):
-            term1 = self._compute_term(x, t, b_prev[:, i], i, p, term_type=1)
-            term2 = self._compute_term(x, t, b_prev[:, i+1], i, p, term_type=2)
+            term1 = self._compute_term(x=x, t=t, b_col=b_prev[:, i], i=i, p=p, term_type=1)
+            term2 = self._compute_term(x=x, t=t, b_col=b_prev[:, i+1], i=i, p=p, term_type=2)
             b_new[:, i] = term1 + term2
         return b_new
 
@@ -119,18 +132,21 @@ class BSpline(Spline):
             return np.zeros_like(x)
         return (numerator / denominator) * b_col
 
-    def _build_variables(self) -> List[cp.Variable]:
+    def _build_variables(self) -> cp.Variable:
         """
         Create cvxpy variables for the spline coefficients.
         """
         if not self._variables:
-            dim = len(self.knots) + self.degree - 1
-            if dim <= 0:
-                 raise ValueError(f"Invalid knots/degree config: len(knots)={len(self.knots)}, degree={self.degree}. Dim would be {dim}")
-            self._variables = [cp.Variable(shape=(dim,), name=f"{self.term}_bspline")]
+            basedim = len(self.knots) + self.degree - 1
+            if self.by is None:
+                self._variables = cp.Variable(shape=(basedim,), name=f"{self.term}_bspline")
+            else:
+                self._variables = cp.Variable(shape=(basedim, len(self._by_classes)), name=f"{self.term}_bspline")
         return self._variables
+
+
 
     def __repr__(self):
         # Convert numpy array to list for cleaner repr if it's small, or specific format
         k_list = self.knots.tolist() if isinstance(self.knots, np.ndarray) else self.knots
-        return f"BSpline(term='{self.term}', degree={self.degree}, knots={k_list})"
+        return f"BSpline(term='{self.term}', degree={self.degree}, knots={k_list}, by={self._by})"

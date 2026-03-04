@@ -21,7 +21,7 @@ class Anchor(Constraint):
     def build_constraint(self, s) -> list:
         constraints = []
         basis = s._build_basis(np.array([x for x, _ in self.xy]))
-        variables = s._build_variables()[0]
+        variables = s._build_variables()
         
         for i in range(len(self.xy)):
             constraints.append(basis[i] @ variables == self.xy[i][1])

@@ -62,7 +62,11 @@ class LpRegressor:
         self._validate_input(X)
 
         for spline in self.splines:
-            spline.init_spline(X[spline.term].to_numpy())
+
+            if spline.by is not None:
+                spline.init_spline(X[spline.term].to_numpy(), by=X[spline.by].to_numpy())
+            else:
+                spline.init_spline(X[spline.term].to_numpy())
 
         total_expression, summary_data = self._build_model_expression(X)
         
@@ -108,10 +112,17 @@ class LpRegressor:
     def _evaluate_spline(self, spline: "base_spline.Spline", X: pl.DataFrame) -> np.ndarray:
         """Evaluate a single spline on the input data."""
         self._validate_term_in_dataframe(spline.term, X)
-        x_data = X[spline.term].to_numpy()
         
-        spline_expr = spline(x_data)
-        spline_val = spline_expr.value
+        if spline.by is not None:
+            self._validate_term_in_dataframe(spline.by, X)
+
+        x = X[spline.term].to_numpy()
+        
+        if spline.by is not None:
+            by = X[spline.by].to_numpy()
+            spline_val = spline.eval(x, by=by)
+        else:
+            spline_val = spline.eval(x)
         
         if spline_val is None:
              print(f"Warning: Spline for term {spline.term} has no value. Using zeros.")
@@ -159,8 +170,13 @@ class LpRegressor:
         for spline in self.splines:
             self._validate_term_in_dataframe(spline.term, X)
             
-            x_data = X[spline.term].to_numpy()
-            spline_expr = spline(x_data)
+            if spline.by is not None:
+                x_data = X[spline.term].to_numpy()
+                by_data = X[spline.by].to_numpy()
+                spline_expr = spline(x_data, by=by_data)
+            else:
+                x_data = X[spline.term].to_numpy()
+                spline_expr = spline(x_data)
             
             # Collect info for summary
             num_params = sum(v.size for v in spline._variables)

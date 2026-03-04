@@ -32,10 +32,10 @@ class Factor(Spline):
         
         return basis
 
-    def _build_variables(self) -> List[cp.Variable]:
+    def _build_variables(self) -> cp.Variable:
         if not self._variables:
             dim = self.n_classes
-            self._variables = [cp.Variable(shape=(dim,), name=f"{self.term}_factor")]
+            self._variables = cp.Variable(shape=(dim,), name=f"{self.term}_factor")
         return self._variables
 
     def __repr__(self):

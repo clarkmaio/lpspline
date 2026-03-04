@@ -21,6 +21,18 @@ class Spline(abc.ABC):
         self._penalties = []
         self._variables = []
 
+        self._by = None # column name of by reference values
+        self._by_classes = None # set of unique by values
+        self._by_int_map = None # map of by values to integer indices
+
+
+    @property
+    def by(self) -> Optional[str]:
+        """
+        Returns the by variable of the spline.
+        """
+        return self._by
+
     @property
     def variables(self) -> List[cp.Variable]:
         """
@@ -61,7 +73,7 @@ class Spline(abc.ABC):
         """
         Returns the coefficients of the spline.
         """
-        return np.array(self._variables[0].value).flatten()
+        return np.array(self._variables.value)
 
     def init_spline(self, x: np.ndarray, by: np.ndarray = None):
         """
@@ -69,12 +81,13 @@ class Spline(abc.ABC):
         """
         pass
 
-    @property
-    def coefficients(self) -> np.ndarray:
+
+    def init_by(self, by_classes: np.ndarray):
         """
-        Returns the coefficients of the spline.
+        Initialize the by integer map.
         """
-        return np.array(self._variables[0].value).flatten()
+        self._by_classes = by_classes
+        self._by_int_map = {c: i for i, c in enumerate(by_classes)}
 
     def add_constraint(self, *constraints):
         """
@@ -113,7 +126,7 @@ class Spline(abc.ABC):
         return self
 
     @abc.abstractmethod
-    def _build_basis(self, x: np.ndarray) -> np.ndarray:
+    def _build_basis(self, x: np.ndarray, **kwargs) -> np.ndarray:
         """
         Builds the basis functions for the spline.
 
@@ -126,11 +139,18 @@ class Spline(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _build_variables(self) -> List[cp.Variable]:
+    def _build_variables(self) -> cp.Variable:
         """
         Returns a list of cvxpy variables associated with this spline.
         """
         pass
+
+
+    def _build_one_hot_matrix(self, by: np.ndarray) -> np.ndarray:
+        """
+        Returns a one-hot encoded array for the given array of values. One hot based on self._by_classes.
+        """
+        return np.eye(len(self._by_classes))[by]
 
     def __call__(self, x: np.ndarray, by: np.ndarray = None) -> cp.Expression:
         """
@@ -145,15 +165,24 @@ class Spline(abc.ABC):
         Raises:
             ValueError: If no variables are defined for the spline.
         """
-        basis = self._build_basis(x)
+
         variables = self._build_variables()
-        
         if not variables:
             raise ValueError("No variables defined for this spline.")
-            
-        return basis @ variables[0]
+        
+        basis = self._build_basis(x)
 
-    def eval(self, x: np.ndarray, return_basis: bool = False) -> np.ndarray:
+        if by is None:
+            return basis @ variables
+        else:
+            onehotby = self._build_one_hot_matrix(by=by)
+            out = basis @ variables
+            out = cp.multiply(out, onehotby)
+            out = cp.sum(out, axis=1)
+            return out
+
+
+    def eval(self, x: np.ndarray, return_basis: bool = False, by: np.ndarray = None) -> np.ndarray:
         """
         Evaluates the spline expression for the given input x.
 
@@ -167,10 +196,17 @@ class Spline(abc.ABC):
             ValueError: If no variables are defined for the spline.
         """
         assert self.coefficients is not None, "Spline has not been fitted."
+        
         basis = self._build_basis(x)
-        if return_basis:
-            return basis * self.coefficients
-        return basis @ self.coefficients
+
+        if by is None:
+            return basis @ self.coefficients
+        else:
+            onehotby = self._build_one_hot_matrix(by=by)
+            out = basis @ self.coefficients
+            out = np.multiply(out, onehotby)
+            out = np.sum(out, axis=1)
+            return out
 
     def __add__(self, other):
         """

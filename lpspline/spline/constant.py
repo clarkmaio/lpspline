@@ -18,12 +18,12 @@ class Constant(Spline):
         """
         return np.ones((len(x), 1))
 
-    def _build_variables(self) -> List[cp.Variable]:
+    def _build_variables(self) -> cp.Variable:
         """
         Create cvxpy variables for the spline coefficients.
         """
         if not self._variables:
-            self._variables = [cp.Variable(shape=(1,), name=f"{self.term}_constant")]
+            self._variables = cp.Variable(shape=(1,), name=f"{self.term}_constant")
         return self._variables
 
     def __repr__(self):
