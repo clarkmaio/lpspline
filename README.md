@@ -34,36 +34,11 @@ import numpy as np
 import polars as pl
 from lpspline import l, pwl, bs, cs
 from lpspline.viz import plot_diagnostic
+from lpspline.datasets import load_demo_dataset
 
 
 # ---------------------------------------- Data Generation
-
-n = 1000
-
-# Regressors
-x_linear = np.linspace(0, 10, n)
-x_pwl = np.linspace(0, 10, n)
-x_bs = np.linspace(0, 10, n)
-x_cyc = np.linspace(0, 2*np.pi, n)
-x_factor = np.random.randint(0, 3, n)
-
-# Target
-y_linear = 0.5 * x_linear
-y_pwl = np.where(x_pwl < 5, 0, x_pwl - 5)
-y_bs = np.sin(x_bs) 
-y_cyc = np.cos(x_cyc)
-y_factor = np.array([0, 2, -1])[x_factor]
-
-y = y_linear + y_pwl + y_bs + y_cyc + y_factor + np.random.normal(0, 0.2, n)
-
-df = pl.DataFrame({
-    "xl": x_linear,
-    "xpwl": x_pwl,
-    "xbs": x_bs,
-    "xcyc": x_cyc,
-    "xfactor": x_factor,
-    "target": y
-})
+X, y = load_demo_dataset(samples = 1000)
 
 # ---------------------------------------- Model Definition
 model = (
@@ -74,13 +49,13 @@ model = (
     + f(term="xfactor")
 )
 # ---------------------------------------- Model Fitting
-model.fit(df, df["target"])
+model.fit(X, y)
 
 # ---------------------------------------- Model Prediction
-predictions = model.predict(df)
+predictions = model.predict(X)
 
 # ---------------------------------------- Model Visualization
-plot_diagnostic(model=model, X=df, y=df['target'], ncols=3)
+plot_diagnostic(model=model, X=X, y=y, ncols=3)
 ```
 
 ## Expected output

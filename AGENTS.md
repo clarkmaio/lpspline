@@ -42,6 +42,7 @@ You have been tasked with working on this repository. This document outlines the
 *   We use `pytest` for testing.
 *   Write unit tests for all new logic.
 *   Mock external dependencies where appropriate to keep tests fast and reliable.
+*   Save all tests in `tests` directory 
 
 ## Communication
 *   Be clear and concise in your explanations.
