@@ -5,7 +5,37 @@ import numpy as np
 import pimpmyplot as pmp
 import polars as pl
 from .optimizer import LpRegressor
+from .spline.factor import Factor
 
+
+def _plot_partial_residuals(ax, spline, X, y, components, i, comp_vals, x_vals):
+    y_arr = y.to_numpy() if isinstance(y, pl.Series) else np.asarray(y)
+    other_components_sum = np.sum(components, axis=1) - comp_vals
+    partial_resid = y_arr - other_components_sum
+    
+    if getattr(spline, '_by_classes', None) is not None:
+        for j, c in enumerate(spline._by_classes):
+            class_filter_idx = np.where(X[spline._by] == c)[0]
+            if class_filter_idx.size > 0:
+                ax.scatter(x_vals[class_filter_idx], partial_resid[class_filter_idx], 
+                           color=f'C{j % 10}', alpha=0.5, s=10, marker='.')
+    else:
+        ax.scatter(x_vals, partial_resid, color='black', alpha=0.5, s=10, marker='.')
+
+def _plot_spline(ax, spline, X, x_vals, comp_vals, color):
+    idx = np.argsort(x_vals)
+    if isinstance(spline, Factor):
+        ax.scatter(x_vals, comp_vals, color=color, s=10, marker='o', label=spline.tag)
+    elif spline._by_classes is None:
+        ax.plot(x_vals[idx], comp_vals[idx], linestyle='-', color=color, linewidth=4, label=spline.tag)
+    else:
+        for j, c in enumerate(spline._by_classes):
+            class_filter_idx = np.where(X[spline._by] == c)[0]
+            if class_filter_idx.size > 0:
+                idx = np.argsort(x_vals[class_filter_idx])
+                ax.plot(x_vals[class_filter_idx][idx], 
+                        comp_vals[class_filter_idx][idx], 
+                        linestyle='-', color=f'C{j % 10}', linewidth=2, label=f'{spline.tag} {c}')
 
 def plot_diagnostic(model: LpRegressor, X: pl.DataFrame, ncols: int = 4, y: pl.Series = None):
     """
@@ -28,33 +58,38 @@ def plot_diagnostic(model: LpRegressor, X: pl.DataFrame, ncols: int = 4, y: pl.S
         feature = spline.term
         x_vals = X[feature].to_numpy()
         comp_vals = components[:, i]
-        
-        # Sort for plotting lines nicely
-        idx = np.argsort(x_vals)
         color = f'C{i % 10}'
         
         if y is not None:
-            y_arr = y.to_numpy() if isinstance(y, pl.Series) else np.asarray(y)
-            other_components_sum = np.sum(components, axis=1) - comp_vals
-            partial_resid = y_arr - other_components_sum
-            axes[i].scatter(x_vals, partial_resid, color='black', alpha=0.5, s=10, marker='.')
+            _plot_partial_residuals(
+                ax=axes[i], 
+                spline=spline, 
+                X=X, 
+                y=y, 
+                components=components, 
+                i=i, 
+                comp_vals=comp_vals, 
+                x_vals=x_vals
+            )
         
-        # If categorical style it differently
-        if len(np.unique(x_vals)) < 10:
-            axes[i].plot(x_vals[idx], comp_vals[idx], 'o', color=color, markersize=8, label=spline.tag)
-        else:
-            axes[i].plot(x_vals[idx], comp_vals[idx], '-', color=color, linewidth=4, label=spline.tag)
-            
+        _plot_spline(
+            ax=axes[i], 
+            spline=spline, 
+            X=X, 
+            x_vals=x_vals, 
+            comp_vals=comp_vals, 
+            color=color
+        )
+
         axes[i].set_xlabel(feature)
         pmp.remove_axis('top', 'right', ax=axes[i])
-        pmp.bullet_grid(stepinch=.3, ax=axes[i])
-        pmp.legend(ax=axes[i], loc='upper left')
+        pmp.bullet_grid(stepinch=.3, ax=axes[i], alpha=0.4)
+        pmp.legend(ax=axes[i], loc='upper left', ncol=1)
 
     # Hide any unused subplots
     for j in range(n_splines, len(axes)):
         fig.delaxes(axes[j])
     
-
     fig.suptitle("Diagnostic", fontsize=20, y=1.02)    
     fig.tight_layout()
     

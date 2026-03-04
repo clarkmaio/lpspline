@@ -48,12 +48,13 @@ X, y = load_demo_dataset(samples = 1000)
 
 # ---------------------------------------- Model Definition
 model = (
-    +l(term='xl')
+    +l(term='xl', by='xfactor')
     + pwl(term='xpwl', knots=3)
     + bs(term="xbs", knots=10, degree=2)
     + cs(term="xcyc", order=3)
     + f(term="xfactor")
 )
+
 # ---------------------------------------- Model Fitting
 model.fit(X, y)
 
@@ -74,15 +75,15 @@ Once the model is fitted, you will see a detailed summary to the console and a d
 ========================================================================================================================
 Problem Status: ✅ optimal
 ------------------------------------------------------------------------------------------------------------------------
-Spline Type          | Term         | Tag             | Constraints          | Penalties            | Params 
+Spline Type          | Term         | Tag             | Constraints          | Penalties            | Params
 ------------------------------------------------------------------------------------------------------------------------
-🟢 Linear            | xl           | linear          | None                 | None                 | 2       
+🟢 Linear            | xl           | linear          | None                 | None                 | 6       
 🟢 PiecewiseLinear   | xpwl         | pwl             | None                 | None                 | 5       
 🟢 BSpline           | xbs          | bspline         | None                 | None                 | 11      
 🟢 CyclicSpline      | xcyc         | cyclicspline    | None                 | None                 | 7       
-🟢 Factor            | xfactor      | factor          | None                 | None                 | 5       
+🟢 Factor            | xfactor      | factor          | None                 | None                 | 3       
 ------------------------------------------------------------------------------------------------------------------------
-📊 Total Parameters                                                                                 | 29
+📊 Total Parameters                                                                                 | 32
 ========================================================================================================================
 
 Model fitted successfully.
