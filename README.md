@@ -1,6 +1,6 @@
 
 <p align="center">
-  <img src="assets/logo2.png" width="30%"/>
+  <img src="assets/logo_round.png" width="30%"/>
 </p>
 
 # LPSpline
