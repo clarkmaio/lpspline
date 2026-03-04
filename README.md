@@ -1,4 +1,10 @@
+
+<p align="center">
+  <img src="assets/logo2.png" width="30%"/>
+</p>
+
 # LPSpline
+
 
 LPSpline is a Python package for building and optimizing linear spline models using an intuitive additive API. It provides a flexible way to model non-linear relationships using various spline types like Piecewise Linear, B-Splines, Cyclic Splines, and Categorical Factors.
 
