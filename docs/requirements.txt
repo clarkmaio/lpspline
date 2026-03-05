@@ -1,5 +1,6 @@
-mkdocs>=1.5.0
-mkdocs-material>=9.4.0
-mkdocstrings[python]>=0.23.0
-mkdocs-jupyter>=0.24.0
+sphinx
+pydata-sphinx-theme
 numpydoc
+marimo
+sphinx-marimo
+ipython
