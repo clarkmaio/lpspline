@@ -6,15 +6,21 @@ from typing import Tuple
 
 def load_by_dataset(samples: int = 1000, type: str = 'linear') -> Tuple[pl.DataFrame, pl.Series]:
     """
-    Generate a synthetic dataset for demonstrating LPSpline features.
+    Generate a synthetic dataset for demonstrating LPSpline features including group effects.
     
-    Args:
-        samples (int): Number of samples to generate. Defaults to 1000.
-        type (str): Type of relationship for y. Options: 'linear', 'cubic', 'cyclic'. Defaults to 'cubic'.
+    Parameters
+    ----------
+    samples : int, default=1000
+        Number of samples to generate.
+    type : str, default='cubic'
+        Type of structural relationship for `y`. Options include: 'linear', 'cubic', 'cyclic'.
         
-    Returns:
-        Tuple[pl.DataFrame, pl.Series]: A tuple containing the predictor 
-        DataFrame (X) and the target Series (y).
+    Returns
+    -------
+    X : pl.DataFrame
+        A DataFrame containing the predictive feature 'x' and grouping structure 'by'.
+    y : pl.Series
+        The response Target series.
     """
 
     x = np.linspace(-10, 10, samples)
@@ -38,14 +44,19 @@ def load_by_dataset(samples: int = 1000, type: str = 'linear') -> Tuple[pl.DataF
 
 def load_demo_dataset(samples: int = 1000) -> Tuple[pl.DataFrame, pl.Series]:
     """
-    Generate a synthetic dataset for demonstrating LPSpline features.
+    Generate a diverse synthetic dataset for demonstrating multiple LPSpline component features.
     
-    Args:
-        samples (int): Number of samples to generate. Defaults to 1000.
+    Parameters
+    ----------
+    samples : int, default=1000
+        Number of samples to generate.
         
-    Returns:
-        Tuple[pl.DataFrame, pl.Series]: A tuple containing the predictor 
-        DataFrame (X) and the target Series (y).
+    Returns
+    -------
+    X : pl.DataFrame
+        A DataFrame containing multiple features tracking various generative relationships.
+    y_series : pl.Series
+        The synthesized composite target variable.
     """
     x_linear = np.linspace(0, 10, samples)
     x_pwl = np.linspace(0, 10, samples)

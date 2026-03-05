@@ -39,8 +39,28 @@ def _plot_spline(ax, spline, X, x_vals, comp_vals, color):
 
 def plot_diagnostic(model: LpRegressor, X: pl.DataFrame, ncols: int = 4, y: pl.Series = None):
     """
-    Create a plot of the learned spline components.
-    Create a plot with at most 4 columns. Modify subplot size according to number of model splines
+    Generate a diagnostic plot rendering the individually learned spline components natively.
+
+    Dynamically sizes subplot grids according to the mathematical component complexity 
+    of the underlying optimized model.
+
+    Parameters
+    ----------
+    model : LpRegressor
+        An LPSpline regression model object which has completed the `fit()` cycle.
+    X : pl.DataFrame
+        A Polars DataFrame containing the predictive feature fields.
+    ncols : int, default=4
+        The maximum number of subplots generated per row.
+    y : pl.Series, default=None
+        Optional true response series. If provided, calculates and overlays partial residuals.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The rendered Matplotlib figure window.
+    axes : numpy.ndarray
+        Array containing the individual subplot Matplotlib Axes.
     """
     components = model.predict(X, return_components=True)
 
