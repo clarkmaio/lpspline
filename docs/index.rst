@@ -1,3 +1,7 @@
+
+:html_theme.sidebar_primary.remove:
+
+
 Welcome to lpspline Documentation!
 ==================================
 
@@ -34,7 +38,6 @@ The package requires the following dependencies:
    polars
    cvxpy
    pimpmyplot
-   matplotlib
 
 They will be automatically installed when installing **lpspline**.
 
