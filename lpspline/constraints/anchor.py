@@ -22,8 +22,11 @@ class Anchor(Constraint):
         constraints = []
         basis = s._build_basis(np.array([x for x, _ in self.xy]))
         variables = s._build_variables()
+        M = len(s._by_classes) if getattr(s, 'by', None) is not None else 1
         
-        for i in range(len(self.xy)):
-            constraints.append(basis[i] @ variables == self.xy[i][1])
+        for c in range(M):
+            v_chunk = variables[:, c] if getattr(s, 'by', None) is not None else variables
+            for i in range(len(self.xy)):
+                constraints.append(basis[i] @ v_chunk == self.xy[i][1])
             
         return constraints

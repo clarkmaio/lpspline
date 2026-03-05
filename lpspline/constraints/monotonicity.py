@@ -30,6 +30,8 @@ class Monotonic(Constraint):
     def _constraint_Linear(self, s, sign: int):
         variables = s._build_variables()
         slope_idx = 1 if s.bias else 0
+        if getattr(s, '_by_classes', None) is not None:
+            return [sign * variables[slope_idx, :] >= 0]
         return [sign * variables[slope_idx] >= 0]
 
     def _constraint_PiecewiseLinear(self, s, sign):

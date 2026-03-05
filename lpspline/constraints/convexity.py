@@ -28,7 +28,7 @@ class Convex(Constraint):
         dim_base = len(s.knots) + s.degree - 1
 
         for c in range(M):
-            v_chunk = variables[c * dim_base : (c + 1) * dim_base]
+            v_chunk = variables[:, c] if s.by is not None else variables
             if self.start is not None and self.end is not None:
                 knots = np.array(s.knots)
                 indices = np.where((knots >= self.start) & (knots <= self.end))[0]
