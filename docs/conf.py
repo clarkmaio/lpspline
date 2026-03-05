@@ -20,7 +20,6 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',    # Supports both numpy and google docstrings
     'sphinx.ext.viewcode',
-    'sphinx_marimo',          # Interactive WASM Marimo Python notebooks
 ]
 
 templates_path = ['_templates']
@@ -36,6 +35,7 @@ html_logo = "../assets/logo_round.png"
 html_theme_options = {
     "logo": {
         "text": "lpspline",
+        "link": "index",
     },
     "icon_links": [
         {
@@ -49,4 +49,3 @@ html_theme_options = {
 }
 
 autosummary_generate = True
-marimo_click_to_load = False

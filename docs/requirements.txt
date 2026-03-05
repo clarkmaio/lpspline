@@ -1,6 +1,4 @@
 sphinx
 pydata-sphinx-theme
 numpydoc
-marimo
-sphinx-marimo
 ipython
