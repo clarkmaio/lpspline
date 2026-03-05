@@ -12,10 +12,18 @@ class BSpline(Spline):
         """
         Initialize the B-Spline.
         
-        Args:
-            term: The column name in the DataFrame.
-            knots: List of knot positions.
-            degree: The degree of the spline (default 3 for cubic).
+        Parameters
+        ----------
+        term : str
+            The column name in the DataFrame this spline models.
+        knots : Union[int, np.ndarray]
+            List or array of knot positions, or an integer specifying the number of knots to generate automatically.
+        degree : int, default=3
+            The degree of the spline (e.g., 3 for cubic splines).
+        by : Optional[str], default=None
+            The column name denoting group classes if interaction modeling is required.
+        tag : Optional[str], default='bspline'
+            A tag for identification.
         """
         super().__init__(term=term, tag=tag)
         self._knots = knots
@@ -25,19 +33,56 @@ class BSpline(Spline):
         self._variables = []
 
     @property
-    def degree(self):
+    def degree(self) -> int:
+        """
+        Returns the degree of the spline.
+
+        Returns
+        -------
+        int
+            The polynomial degree.
+        """
         return self._degree
 
     @property
-    def by(self):
+    def by(self) -> Optional[str]:
+        """
+        Returns the grouping variable column name.
+
+        Returns
+        -------
+        Optional[str]
+            The name of the grouping column, or None.
+        """
         return self._by
 
     @property
-    def knots(self):
+    def knots(self) -> Union[int, np.ndarray]:
+        """
+        Returns the knot definitions for this spline.
+
+        Returns
+        -------
+        Union[int, np.ndarray]
+            The array of knot locations or integer count.
+        """
         return self._knots
         
 
     def init_spline(self, x: np.ndarray, by: np.ndarray = None):
+        """
+        Initializes the spline parameters based on input data.
+
+        If `knots` was initially provided as an integer, it is correctly mapped to 
+        linearly spaced values spanning the minimum and maximum of the input array `x`.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            The 1D input array of training features.
+        by : np.ndarray, default=None
+            The array of grouping values.
+        """
         if isinstance(self._knots, int):
             self._knots = np.linspace(np.min(x), np.max(x), self._knots)
         else:
@@ -49,7 +94,22 @@ class BSpline(Spline):
 
     def _pad_knots(self, knots: np.ndarray, degree: int) -> np.ndarray:
         """
-        Pad the knots so the final splines span the provided input knots
+        Pad the knots so the final splines span the provided input knots.
+
+        This ensures the outer boundary conditions for the B-Spline calculations
+        are satisfied. 
+
+        Parameters
+        ----------
+        knots : np.ndarray
+            The interior knot sequence.
+        degree : int
+            The polynomial degree.
+
+        Returns
+        -------
+        np.ndarray
+            The padded knot sequence.
         """
         t_input = knots
         k = degree
@@ -67,11 +127,22 @@ class BSpline(Spline):
         """
         Builds the B-Spline basis functions using Cox-de Boor recursion.
         
-        Args:
-            x: Input array of values.
+        Parameters
+        ----------
+        x : np.ndarray
+            Input array of feature values to evaluate.
+        **kwargs : dict
+            Additional arguments.
             
-        Returns:
-            Basis matrix with shape (n_samples, n_basis_funcs).
+        Returns
+        -------
+        np.ndarray
+            Basis matrix with shape `(n_samples, n_basis_funcs)`.
+        
+        Raises
+        ------
+        ValueError
+            If there are not enough knots relative to the specified degree.
         """
         t = self._pad_knots(self.knots, self.degree) # knots of degree 0 base basis
         k = self.degree
@@ -96,7 +167,24 @@ class BSpline(Spline):
     def _initialize_basis(self, x: np.ndarray, t: np.ndarray, n: int, m: int) -> np.ndarray:
         """
         Initialize degree 0 basis functions.
-        B_{i,0}(x) = 1 if t_i <= x < t_{i+1}, else 0.
+
+        $B_{i,0}(x) = 1$ if $t_i \\leq x < t_{i+1}$, else 0.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            Evaluation sequence.
+        t : np.ndarray
+            Padded knots sequence.
+        n : int
+            Number of observations in `x`.
+        m : int
+            Number of padded knots in `t`.
+
+        Returns
+        -------
+        np.ndarray
+            The degree zero base basis array.
         """
         b = np.zeros((n, m - 1))
         for i in range(m - 1):
@@ -106,7 +194,27 @@ class BSpline(Spline):
 
     def _compute_next_degree_basis(self, b_prev: np.ndarray, x: np.ndarray, t: np.ndarray, p: int, n: int, m: int) -> np.ndarray:
         """
-        Compute basis for degree p given basis for degree p-1 using Cox-de Boor formula.
+        Compute basis for degree `p` given basis for degree `p-1` using the Cox-de Boor recursive formula.
+
+        Parameters
+        ----------
+        b_prev : np.ndarray
+            The basis calculation from the previous degree iteration.
+        x : np.ndarray
+            The input evaluation locations.
+        t : np.ndarray
+            The padded knot sequence.
+        p : int
+            The current degree iterator.
+        n : int
+            Length of the evaluation sequence.
+        m : int
+            Length of the knots sequence.
+
+        Returns
+        -------
+        np.ndarray
+            The updated basis array for current degree iteration.
         """
         b_new = np.zeros((n, m - p - 1))
         for i in range(m - p - 1):
@@ -117,9 +225,30 @@ class BSpline(Spline):
 
     def _compute_term(self, x: np.ndarray, t: np.ndarray, b_col: np.ndarray, i: int, p: int, term_type: int) -> np.ndarray:
         r"""
-        Compute a single term of the recursion formula.
+        Compute a single fractional component term of the Cox-de Boor recursion formula.
+
         Type 1: ((x - t_i) / (t_{i+p} - t_i)) * B_{i, p-1}
         Type 2: ((t_{i+p+1} - x) / (t_{i+p+1} - t_{i+1})) * B_{i+1, p-1}
+
+        Parameters
+        ----------
+        x : np.ndarray
+            Evaluation array.
+        t : np.ndarray
+            Padded knot sequence.
+        b_col : np.ndarray
+            Single column extracted from the `p-1` degree basis matrix.
+        i : int
+            Basis and knot iterator index.
+        p : int
+            Current degree iterator.
+        term_type : int
+            Identifies whether calculating fractional component 1 or 2 in Cox-de-Boor.
+
+        Returns
+        -------
+        np.ndarray
+            A 1D array representing the weighted basis evaluation for this fractional segment.
         """
         if term_type == 1:
             numerator = x - t[i]
@@ -134,7 +263,12 @@ class BSpline(Spline):
 
     def _build_variables(self) -> cp.Variable:
         """
-        Create cvxpy variables for the spline coefficients.
+        Create CVXPY variables representing the spline coefficients.
+
+        Returns
+        -------
+        cp.Variable
+            A CVXPY Variable of shape `(n_knots + degree - 1, len(by_classes) if by else 1)`.
         """
         if not self._variables:
             basedim = len(self.knots) + self.degree - 1
