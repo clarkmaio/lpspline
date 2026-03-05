@@ -34,6 +34,9 @@ html_static_path = ['_static']
 html_logo = "../assets/logo_round.png"
 
 html_theme_options = {
+    "logo": {
+        "text": "lpspline",
+    },
     "icon_links": [
         {
             "name": "GitHub",
