@@ -116,7 +116,7 @@ class BSpline(Spline):
         return b_new
 
     def _compute_term(self, x: np.ndarray, t: np.ndarray, b_col: np.ndarray, i: int, p: int, term_type: int) -> np.ndarray:
-        """
+        r"""
         Compute a single term of the recursion formula.
         Type 1: ((x - t_i) / (t_{i+p} - t_i)) * B_{i, p-1}
         Type 2: ((t_{i+p+1} - x) / (t_{i+p+1} - t_{i+1})) * B_{i+1, p-1}

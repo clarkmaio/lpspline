@@ -5,7 +5,26 @@ from typing import List, Optional
 from .base import Spline
 
 class CyclicSpline(Spline):
+    """
+    Periodic Cyclic Spline defined by Fourier series expansions.
+    """
     def __init__(self, term: str, order: int, period: float = None, tag: Optional[str] = 'cyclicspline', by: Optional[str] = None):
+        """
+        Initialize the Cyclic Spline.
+
+        Parameters
+        ----------
+        term : str
+            The column name denoting the periodic feature.
+        order : int
+            The number of sine/cosine pairs to generate.
+        period : float, default=None
+            The periodicity interval. If None, it is inferred from data.
+        tag : Optional[str], default='cyclicspline'
+            A tag for identification.
+        by : Optional[str], default=None
+            The column name denoting group classes if interaction modeling is required.
+        """
         super().__init__(term=term, tag=tag)
         self._period = period
         self._order = order
@@ -13,14 +32,43 @@ class CyclicSpline(Spline):
         self._variables = []
 
     @property
-    def period(self):
+    def period(self) -> float:
+        """
+        Returns the determined period of the cyclic spline.
+
+        Returns
+        -------
+        float
+            The numeric period length.
+        """
         return self._period
 
     @property
-    def order(self):
+    def order(self) -> int:
+        """
+        Returns the number of generated Fourier term pairs.
+
+        Returns
+        -------
+        int
+            The cyclic order describing polynomial flexibility.
+        """
         return self._order
 
     def init_spline(self, x: np.ndarray, by: np.ndarray = None):
+        """
+        Initializes the periodic boundary conditions based on data.
+
+        If `period` is not specified directly during Initialization, it calculates 
+        the period automatically across the maximum observed range in `x`.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            The 1D input array of training periodic measurements.
+        by : np.ndarray, default=None
+            The array of grouping values.
+        """
         if self._period is None:
             self._period = np.max(x) - np.min(x)
             
@@ -29,16 +77,22 @@ class CyclicSpline(Spline):
 
     def _build_basis(self, x: np.ndarray, **kwargs) -> np.ndarray:
         """
-        Build basis matrix for cyclic spline.
-        1, sin(2*pi*x/P), cos(2*pi*x/P), sin(4*pi*x/P), cos(4*pi*x/P), ...
-        Order K means K pairs of sin/cos.
+        Builds the basis matrix for the cyclic spline using sine/cosine decompositions.
+
+        Generates expansions evaluating sequentially as:
+        $1, \\sin(2\\pi x / P), \\cos(2\\pi x / P), \\sin(4\\pi x / P), \\dots$
         
-        Args:
-            x: Input array.
-            **kwargs: Additional keyword arguments.
+        Parameters
+        ----------
+        x : np.ndarray
+            Input 1D array of cyclic measurements.
+        **kwargs : dict
+            Additional format arguments.
         
-        Returns:
-            np.ndarray: Basis matrix.
+        Returns
+        -------
+        np.ndarray
+            A 2D mathematical basis matrix of shape `(n_samples, 1 + 2 * order)`.
         """
         x = np.array(x).flatten()
         n = len(x)
@@ -53,6 +107,14 @@ class CyclicSpline(Spline):
         return base_basis
 
     def _build_variables(self) -> cp.Variable:
+        """
+        Create CVXPY variables representing the Fourier coefficients.
+
+        Returns
+        -------
+        cp.Variable
+            A CVXPY Variable of shape `(1 + 2 * order, len(by_classes) if by else 1)`.
+        """
         if isinstance(self._variables, list) and not self._variables:
             dim_base = 1 + 2 * self.order
             if self._by is not None:

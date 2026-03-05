@@ -10,10 +10,14 @@ class Spline(abc.ABC):
     """
     def __init__(self, term: str, tag: Optional[str] = None):
         """
-        Initialize the Spline.
+        Initialize the Spline component.
 
-        Args:
-            term: The name of the feature column this spline models.
+        Parameters
+        ----------
+        term : str
+            The name of the feature column this spline models.
+        tag : Optional[str], default=None
+            An optional tag to identify this specific spline component.
         """
         self._term = term
         self._tag = tag
@@ -29,71 +33,137 @@ class Spline(abc.ABC):
     @property
     def by(self) -> Optional[str]:
         """
-        Returns the by variable of the spline.
+        Returns the grouping column name used to group spline coefficients.
+
+        Returns
+        -------
+        Optional[str]
+            The name of the column used for the `by` argument, or None.
         """
         return self._by
 
     @property
     def variables(self) -> List[cp.Variable]:
         """
-        Returns the variables of the spline.
+        Returns the CVXPY variables representing the spline coefficients.
+
+        Returns
+        -------
+        List[cp.Variable]
+            The list of CVXPY variables constructed during fitting.
         """
         return self._variables
 
     @property
     def constraints(self) -> List[cp.Constraint]:
         """
-        Returns the constraints of the spline.
+        Returns the CVXPY constraints associated with the spline.
+
+        Returns
+        -------
+        List[cp.Constraint]
+            A list of all constraints that apply to this spline.
         """
         return self._constraints
 
     @property
     def penalties(self) -> List[cp.Expression]:
         """
-        Returns the penalties of the spline.
+        Returns the penalty expressions associated with the spline.
+
+        Returns
+        -------
+        List[cp.Expression]
+            A list of CVXPY expressions representing the penalties.
         """
         return self._penalties
 
     @property
     def term(self) -> str:
         """
-        Returns the term of the spline.
+        Returns the column name or term this spline models.
+
+        Returns
+        -------
+        str
+            The column name or term string.
         """
         return self._term
 
     @property
     def tag(self) -> Optional[str]:
         """
-        Returns the tag of the spline.
+        Returns the custom tag for this spline component.
+
+        Returns
+        -------
+        Optional[str]
+            The tag assigned to this spline component, or None.
         """
         return self._tag
 
     @property
     def coefficients(self) -> np.ndarray:
         """
-        Returns the coefficients of the spline.
+        Returns the fitted coefficients of the spline.
+
+        Returns
+        -------
+        np.ndarray
+            The computed coefficient values from the CVXPY variables.
         """
         return np.array(self._variables.value)
 
     def init_spline(self, x: np.ndarray, by: np.ndarray = None):
         """
-        Initialize core parameters to build spline basis according to train data.
+        Initialize core parameters to build the spline basis according to the training data.
+
+        This method is meant to be overridden by subclasses to initialize knot locations, 
+        base configurations, or other data-dependent structures.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            The 1D input array of training features for this spline.
+        by : np.ndarray, default=None
+            The array of grouping values, if a `by` variable is specified.
         """
         pass
 
 
     def init_by(self, by_classes: np.ndarray):
         """
-        Initialize the by integer map.
+        Initialize internal tracking for the unique classes in the `by` variable.
+
+        Parameters
+        ----------
+        by_classes : np.ndarray
+            A 1D array of the unique categorical/grouping values found in the data.
         """
         self._by_classes = by_classes
         self._by_int_map = {c: i for i, c in enumerate(by_classes)}
 
     def add_constraint(self, *constraints):
         """
-        Takes in input Constraints.
-        Not all splines can accept all constraints.
-        Raises ValueError depending on the spline type and constraint.
+        Add one or more shape constraints to the spline.
+
+        Not all splines can accept all constraints. This function validates the
+        compatibility of the constraints with the current spline type.
+
+        Parameters
+        ----------
+        *constraints : Constraint
+            One or more Constraint objects to apply (e.g., Monotonic, Convex).
+
+        Returns
+        -------
+        Spline
+            Returns the spline instance to allow methodical chaining.
+
+        Raises
+        ------
+        ValueError
+            If a given constraint is incompatible with this spline type.
         """
         from ..constraints import Monotonic, Convex, Concave
         from .cyclic_spline import CyclicSpline
@@ -114,9 +184,22 @@ class Spline(abc.ABC):
 
     def add_penalty(self, *penalties):
         """
-        Takes in input Penalties.
-        Not all splines can accept all penalties.
-        Raises ValueError depending on the spline type and penalty.
+        Add one or more regularization penalties to the spline coefficients.
+
+        Parameters
+        ----------
+        *penalties : Penalty
+            One or more Penalty objects to apply (e.g., Ridge, Lasso).
+
+        Returns
+        -------
+        Spline
+            Returns the spline instance to allow methodical chaining.
+
+        Raises
+        ------
+        TypeError
+            If the supplied argument is not a Penalty instance.
         """
         from ..penalties import Penalty
         for p in penalties:
@@ -128,42 +211,71 @@ class Spline(abc.ABC):
     @abc.abstractmethod
     def _build_basis(self, x: np.ndarray, **kwargs) -> np.ndarray:
         """
-        Builds the basis functions for the spline.
+        Builds the basis matrix evaluated at the input features.
 
-        Args:
-            x: Input feature array.
+        Parameters
+        ----------
+        x : np.ndarray
+            The 1D input feature array.
+        **kwargs : dict
+            Additional arguments for basis construction.
 
-        Returns:
-            A numpy array of shape (n_samples, n_basis_funcs).
+        Returns
+        -------
+        np.ndarray
+            A 2D numpy array of shape `(n_samples, n_basis_funcs)`.
         """
         pass
 
     @abc.abstractmethod
     def _build_variables(self) -> cp.Variable:
         """
-        Returns a list of cvxpy variables associated with this spline.
+        Returns the CVXPY variables associated with this spline.
+
+        Returns
+        -------
+        cp.Variable
+            The CVXPY variables matrix or vector used for convex optimization.
         """
         pass
 
 
     def _build_one_hot_matrix(self, by: np.ndarray) -> np.ndarray:
         """
-        Returns a one-hot encoded array for the given array of values. One hot based on self._by_classes.
+        Returns a one-hot encoded matrix for the given array of categorical values based on `_by_classes`.
+
+        Parameters
+        ----------
+        by : np.ndarray
+            An integer encoded 1D array of group indices.
+
+        Returns
+        -------
+        np.ndarray
+            A 2D binary numpy array of shape `(n_samples, n_classes)`.
         """
         return np.eye(len(self._by_classes))[by]
 
     def __call__(self, x: np.ndarray, by: np.ndarray = None) -> cp.Expression:
         """
-        Evaluates the spline expression for the given input x.
+        Evaluates the symbolic CVXPY spline expression for the given input `x`.
 
-        Args:
-            x: Input feature array.
+        Parameters
+        ----------
+        x : np.ndarray
+            The 1D input feature array for the spline evaluation.
+        by : np.ndarray, default=None
+            The 1D integer-encoded grouping array, if the `by` argument is specified.
 
-        Returns:
-            A cvxpy Expression representing the spline values.
+        Returns
+        -------
+        cp.Expression
+            A CVXPY Expression representing the spline values for optimization.
         
-        Raises:
-            ValueError: If no variables are defined for the spline.
+        Raises
+        ------
+        ValueError
+            If no CVXPY variables are defined for the spline prior to evaluation.
         """
 
         variables = self._build_variables()
@@ -184,16 +296,26 @@ class Spline(abc.ABC):
 
     def eval(self, x: np.ndarray, return_basis: bool = False, by: np.ndarray = None) -> np.ndarray:
         """
-        Evaluates the spline expression for the given input x.
+        Evaluates the fitted numeric spline values for the given input `x`.
 
-        Args:
-            x: Input feature array.
+        Parameters
+        ----------
+        x : np.ndarray
+            The 1D input feature array to evaluate the spline on.
+        return_basis : bool, default=False
+            Whether to return the raw basis matrix instead of the evaluated spline.
+        by : np.ndarray, default=None
+            The 1D integer-encoded grouping array, if the `by` argument is specified.
 
-        Returns:
-            A numpy array of shape (n_samples,) representing the spline values.
+        Returns
+        -------
+        np.ndarray
+            A 1D numpy array of shape `(n_samples,)` representing the predicted values.
         
-        Raises:
-            ValueError: If no variables are defined for the spline.
+        Raises
+        ------
+        AssertionError
+            If the spline has not been fitted and coefficients are not available.
         """
         assert self.coefficients is not None, "Spline has not been fitted."
         
@@ -210,10 +332,24 @@ class Spline(abc.ABC):
 
     def __add__(self, other):
         """
-        Implements addition to allow combining Splines into an LpRegressor model.
+        Implements addition to allow combining Splines into an `LpRegressor` model.
         
-        Spline + Spline -> LpRegressor
-        Spline + LpRegressor -> LpRegressor
+        Parameters
+        ----------
+        other : Spline or LpRegressor
+            The other component to combine with this spline.
+
+        Returns
+        -------
+        LpRegressor
+            An LpRegressor model combining the terms:
+            - `Spline + Spline -> LpRegressor`
+            - `Spline + LpRegressor -> LpRegressor`
+
+        Raises
+        ------
+        TypeError
+            If the object being added is not a Spline or LpRegressor instance.
         """
         from ..optimizer import LpRegressor
         
@@ -227,8 +363,14 @@ class Spline(abc.ABC):
 
     def __pos__(self):
         """
-        Unary + operator to create an LpRegressor with a single spline.
-        Usage: model = +spline
+        Unary `+` operator to create an `LpRegressor` with a single spline constraint.
+        
+        Usage: `model = +spline(...)`
+        
+        Returns
+        -------
+        LpRegressor
+            An initialized regression model containing solely this spline.
         """
         from ..optimizer import LpRegressor
         return LpRegressor(self)

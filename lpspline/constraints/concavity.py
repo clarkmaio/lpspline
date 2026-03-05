@@ -3,12 +3,43 @@ import numpy as np
 from .base import Constraint
 
 class Concave(Constraint):
+    """
+    Concavity constraint enforcing a negative second derivative globally or locally.
+    """
 
     def __init__(self, start: float = None, end: float = None) -> None:
+        """
+        Initialize the Concavity constraint.
+
+        Parameters
+        ----------
+        start : float, default=None
+            The domain starting coordinate to bound the constraint enforcement region.
+        end : float, default=None
+            The domain ending coordinate for the constraint region.
+        """
         self.start = start
         self.end = end
 
     def build_constraint(self, s) -> list:
+        """
+        Constructs the appropriate CVXPY concave formulations according to the basis type.
+
+        Parameters
+        ----------
+        s : Spline
+            The parent Spline applying this restriction.
+
+        Returns
+        -------
+        list
+            A sequence containing formulation rules as CVXPY boolean expressions.
+
+        Raises
+        ------
+        NotImplementedError
+            If the supplied Spline instance functionally lacks concavity restrictions.
+        """
         from ..spline import Linear, PiecewiseLinear, BSpline
         
         variables = s._build_variables()
@@ -21,6 +52,19 @@ class Concave(Constraint):
             raise NotImplementedError(f"Concavity constraint not implemented for spline type '{type(s).__name__}'")    
 
     def _constraint_BSpline(self, s):
+        """
+        Bounds sequential B-Splines evaluating directly on the recursive knot control points natively.
+
+        Parameters
+        ----------
+        s : BSpline
+            B-spline formulation component.
+
+        Returns
+        -------
+        list
+            Resultant list enforcing sequential second-order numerical negative bounds.
+        """
         variables = s._build_variables()
         constraints = []
         M = len(s._by_classes) if s.by is not None else 1
@@ -41,6 +85,19 @@ class Concave(Constraint):
         return constraints
 
     def _constraint_PiecewiseLinear(self, s):
+        """
+        Enforces piecewise linear negative second differences tracking changes in slopes natively.
+
+        Parameters
+        ----------
+        s : PiecewiseLinear
+            Approximation basis component.
+
+        Returns
+        -------
+        list
+            Formulations targeting piecewise basis differences targeting negative knot adjustments.
+        """
         variables = s._build_variables()
         constraints = []
         M = len(s._by_classes) if s.by is not None else 1

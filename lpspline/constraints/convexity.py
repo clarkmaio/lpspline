@@ -5,12 +5,43 @@ from ..spline import Linear, PiecewiseLinear, BSpline
 
 
 class Convex(Constraint):
+    """
+    Convexity constraint enforcing a positive second derivative globally or locally.
+    """
 
     def __init__(self, start: float = None, end: float = None) -> None:
+        """
+        Initialize the Convexity constraint.
+
+        Parameters
+        ----------
+        start : float, default=None
+            The domain starting coordinate to bound the constraint enforcement region.
+        end : float, default=None
+            The domain ending coordinate for the constraint region.
+        """
         self.start = start
         self.end = end
 
-    def build_constraint(self, s) -> list:        
+    def build_constraint(self, s) -> list:
+        """
+        Constructs the appropriate CVXPY convex formulations according to the basis type.
+
+        Parameters
+        ----------
+        s : Spline
+            The parent Spline applying this restriction.
+
+        Returns
+        -------
+        list
+            A sequence containing formulation rules as CVXPY boolean expressions.
+
+        Raises
+        ------
+        NotImplementedError
+            If the supplied Spline instance functionally lacks convexity restrictions.
+        """
         variables = s._build_variables()
 
         if isinstance(s, BSpline):
@@ -22,6 +53,19 @@ class Convex(Constraint):
 
 
     def _constraint_BSpline(self, s):
+        """
+        Bounds sequential B-Splines evaluating directly on the recursive knot control points natively.
+
+        Parameters
+        ----------
+        s : BSpline
+            B-spline formulation component.
+
+        Returns
+        -------
+        list
+            Resultant list enforcing sequential second-order numerical derivatives.
+        """
         variables = s._build_variables()
         constraints = []
         M = len(s._by_classes) if s.by is not None else 1
@@ -42,6 +86,19 @@ class Convex(Constraint):
         return constraints
 
     def _constraint_PiecewiseLinear(self, s):
+        """
+        Enforces piecewise linear positive second differences tracking changes in slopes natively.
+
+        Parameters
+        ----------
+        s : PiecewiseLinear
+            Approximation basis component.
+
+        Returns
+        -------
+        list
+            Formulations targeting piecewise basis differences targeting positive knot adjustments.
+        """
         variables = s._build_variables()
         constraints = []
         M = len(s._by_classes) if s.by is not None else 1

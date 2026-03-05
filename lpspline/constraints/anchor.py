@@ -4,9 +4,22 @@ from typing import List
 from .base import Constraint
 
 class Anchor(Constraint):
+    """
+    Anchor constraint binding the curve to pass explicitly through specified coordinate points.
+    """
     def __init__(self, *args):
         """
-        xy: List of (x, y) tuples
+        Initialize the Anchor constraint.
+
+        Parameters
+        ----------
+        *args : tuple
+            A sequence of exactly (x, y) tuples defining coordinates the spline must intersect.
+
+        Raises
+        ------
+        ValueError
+            If arguments are empty or not formatted explicitly as structural (x, y) coordinates.
         """
         self.xy = args
             
@@ -19,6 +32,19 @@ class Anchor(Constraint):
             
 
     def build_constraint(self, s) -> list:
+        """
+        Constructs CVXPY equality conditions restricting basis sums at anchoring points.
+
+        Parameters
+        ----------
+        s : Spline
+            The Spline component applying this positional constraint.
+
+        Returns
+        -------
+        list
+            A list specifying `basis @ variable == y` strict equalities.
+        """
         constraints = []
         basis = s._build_basis(np.array([x for x, _ in self.xy]))
         variables = s._build_variables()
