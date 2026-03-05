@@ -3,4 +3,3 @@
 polars
 cvxpy
 pimpmyplot
-matplotlib

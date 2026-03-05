@@ -16,7 +16,7 @@ Getting Started
 
 **lpspline** is a specialized convex regression package enabling the generation of constrained additive spline models via robust convex optimization.
 The package will provide a user-friendly interface for the generation of constrained additive spline models.
-Optimizer is based on `cvxpy`
+Optimizer is based on ``cvxpy``
 
 
 Installation

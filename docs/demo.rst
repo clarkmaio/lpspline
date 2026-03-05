@@ -3,37 +3,40 @@ Demo
 
 This page demonstrates the usage of the LPSpline package generating predictive distributions.
 
+
+Standard regression
+------------------------
+
 .. code-block:: python
 
-    import numpy as np
-    import polars as pl
-    import matplotlib.pyplot as plt
+    from lpspline import LpRegressor, bs
+    from lpspline.viz import plot_diagnostic
+    from lpspline.datasets import load_demo_dataset
 
-    from lpspline import bs, l, pwl
-    from lpspline.constraints import Anchor, Monotonic, Concave, Convex
-    from lpspline.optimizer import LpRegressor
-    from lpspline.penalties import Ridge
+
+by splines
+------------
+
+.. code-block:: python
+
+    from lpspline import LpRegressor, bs
     from lpspline.viz import plot_diagnostic
 
 
-    # Create a sample dataset
-    np.random.seed(50)
-    N = 1000
-    x = np.linspace(-5, 5, N)
-    by = np.random.randint(0, 3, N)
-    y = np.sin(x) + np.random.normal(0, 0.2, N) + (0.9 + by)*x
+Constraints
+-------------
 
-    df = pl.DataFrame({"x": x, 'by': by,"y": y})
 
-    anchor_points = [(0,1), (2, 0)]
+.. code-block:: python
 
-    model = (
-        +bs("x", knots=np.linspace(-10, 10, 20), degree=2, tag='bs', by='by')
-        #+l('x', by='by')
-        #.add_constraint(Monotonic(decreasing=True, start=0, end = 10))
-        .add_constraint(Convex(start=0, end = 10))
-    )
+    from lpspline import LpRegressor, bs
+    from lpspline.viz import plot_diagnostic
 
-    model.fit(X=df, y=df['y'])
 
-    plot_diagnostic(model=model, X=df, y=df["y"])
+Penalties
+-------------
+
+.. code-block:: python
+
+    from lpspline import LpRegressor, bs
+    from lpspline.viz import plot_diagnostic
