@@ -4,7 +4,7 @@ Quickstart
 Installation
 ------------
 
-Install `lpspline` via pip directly from the command line:
+Install ``lpspline`` via pip directly from the command line:
 
 .. code-block:: bash
 
@@ -23,10 +23,18 @@ For each spline type there is a dedicated class you can import
    from lpspline import c, f, l, pwl, bs, cs
 
 
+* ``c``: constant
+* ``f``: factor
+* ``l``: linear
+* ``pwl``: piecewise linear
+* ``bs``: B-spline
+* ``cs``: cyclic spline
+
+
 LpRegressor
 -----------
 
-The class `LpRegressor` is a sklearn-like interface to perform a regression with your data.
+The class ``LpRegressor`` is a sklearn-like interface to perform a regression with your data.
 
 The easiest way to initialize an instance is to simply write down the formula.
 
@@ -54,7 +62,7 @@ The easiest way to initialize an instance is to simply write down the formula.
 
 
 
-You can still initialize the `LpRegressor` creating an instance in the classical way:
+You can still initialize the ``LpRegressor`` creating an instance in the classical way:
 
 .. code-block:: python
 
@@ -62,10 +70,10 @@ You can still initialize the `LpRegressor` creating an instance in the classical
 
 
 
-Fit and predict
+Fit and predict   
 ----------------
 
-`LpRegressor` is compatible with sklearn syntax. It works with `polars` DataFrames and Series.
+``LpRegressor`` is compatible with sklearn syntax. It works with ``polars`` DataFrames and Series.
 
 
 .. code-block:: python
@@ -120,11 +128,11 @@ When you fit the model a summary is printed to the console with all main informa
 Diagnostics
 -----------
 
-`plot_diagnostic` is a function that shows the diagnostic of the model.
+``plot_diagnostic`` is a function that shows the diagnostic of the model.
 
 It shows each fitted spline separately.
 
-If you pass target to argument `y: pl.Series` it will be shown residuals relative to each spline as well.
+If you pass target to argument ``y: pl.Series`` it will be shown residuals relative to each spline as well.
 
 In practice for each spline :math:`s_i` it will be shown:
 
