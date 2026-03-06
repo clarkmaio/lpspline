@@ -54,6 +54,10 @@ My Page: https://clarkmaio.github.io/
 
 
 
+.. marimo:: test.py
+   :height: 800px
+   :width: 100%
+
 
 .. toctree::
    :maxdepth: 2
