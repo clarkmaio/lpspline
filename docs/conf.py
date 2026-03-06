@@ -52,3 +52,8 @@ html_theme_options = {
 autosummary_generate = True
 
 marimo_notebook_dir = '../notebook/marimo'
+
+html_sidebars = {
+    "quickstart": [],
+    "demo": [],
+}
