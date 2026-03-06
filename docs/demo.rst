@@ -1,3 +1,7 @@
+
+:html_theme.sidebar_primary.remove:
+
+
 Demo
 ====
 
