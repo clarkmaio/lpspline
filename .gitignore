@@ -10,6 +10,7 @@
 *.idx
 *.pkl
 
+
 **/.secret
 lpspline.egg-info
 *.egg-info/
@@ -19,6 +20,7 @@ dist/
 PROJECT_SPECS.md
 deployinstructions.md
 .venv
+deploy.sh
 
 __pycache__
 # Sphinx
