@@ -126,25 +126,29 @@ Constraints
     plt.title('Constraints showcase', fontweight='bold')
 
 
-Bound Constraint
-----------------
-
-The ``Bound`` constraint allows you to enforce lower and upper limits on the spline output.
-
-.. code-block:: python
-
-    from lpspline.constraints import Bound
-    
-    model = (
-        +bs("x", knots=10, degree=3)
-        .add_constraint(Bound(lower=0, upper=1.5))
-    )
-    
-    model.fit(X, y)
-
 
 
 .. image:: ../assets/demo_3.png
+   :align: center
+
+
+Bound Constraint
+----------------
+
+.. code-block:: python
+
+    X = pl.DataFrame({'x': np.linspace(0, 10, 1000)})
+    y = pl.Series(np.sin(X['x']*2) * X['x'] + np.random.normal(0, 1, 1000))
+
+    estimator = (
+        +bs(term='x', knots=20)
+            .add_constraint(Bound(lower=0, upper=3, n=1000, start=6, end=100))
+    )
+    estimator.fit(X, y)
+    plot_diagnostic(model=estimator, X=X, y=y)
+
+
+.. image:: ../assets/demo_4.png
    :align: center
 
 
