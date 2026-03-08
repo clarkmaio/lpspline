@@ -126,6 +126,23 @@ Constraints
     plt.title('Constraints showcase', fontweight='bold')
 
 
+Bound Constraint
+----------------
+
+The ``Bound`` constraint allows you to enforce lower and upper limits on the spline output.
+
+.. code-block:: python
+
+    from lpspline.constraints import Bound
+    
+    model = (
+        +bs("x", knots=10, degree=3)
+        .add_constraint(Bound(lower=0, upper=1.5))
+    )
+    
+    model.fit(X, y)
+
+
 
 .. image:: ../assets/demo_3.png
    :align: center

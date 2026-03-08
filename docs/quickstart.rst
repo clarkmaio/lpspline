@@ -129,6 +129,28 @@ When you fit the model a summary is printed to the console with all main informa
 
 
 
+Saving and Loading
+------------------
+
+You can save your trained ``LpRegressor`` model to a file and load it back later. This is useful for persisting models or sharing them.
+
+.. code-block:: python
+
+   # Save the model
+   model.save("my_model.pkl")
+
+   # Load the model back
+   from lpspline import LpRegressor
+   loaded_model = LpRegressor.load("my_model.pkl")
+   
+   # Use the loaded model for predictions
+   predictions = loaded_model.predict(X)
+
+
+.. note::
+
+   The model is saved using ``pickle``. When saving, the underlying optimization problem state is cleared to ensure the object is serializable. The loaded model is fully functional for predictions but cannot be further optimized without re-fitting.
+
 Diagnostics
 -----------
 
