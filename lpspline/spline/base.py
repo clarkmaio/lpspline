@@ -165,7 +165,7 @@ class Spline(abc.ABC):
         ValueError
             If a given constraint is incompatible with this spline type.
         """
-        from ..constraints import Monotonic, Convex, Concave
+        from ..constraints import Monotonic, Convex, Concave, Bound
         from .cyclic_spline import CyclicSpline
         from .factor import Factor
         from .linear import Linear
