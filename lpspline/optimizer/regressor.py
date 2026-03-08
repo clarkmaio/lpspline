@@ -2,6 +2,9 @@
 import polars as pl
 import cvxpy as cp
 import numpy as np
+import pickle
+import pathlib
+import copy
 from typing import List, Optional, Union, Dict, Any, Tuple
 from ..spline import base as base_spline
 from .summary import print_summary
@@ -265,4 +268,37 @@ class LpRegressor:
         
         self.problem = cp.Problem(objective, all_constraints)
         self.problem.solve()
+
+    def save(self, path: Union[str, pathlib.Path]) -> None:
+        """
+        Save the model to a file.
+
+        Parameters
+        ----------
+        path : Union[str, pathlib.Path]
+            The path to the file where the model will be saved.
+        """
+        obj_copy = copy.copy(self)
+        obj_copy.problem = None
+        
+        with open(path, 'wb') as f:
+            pickle.dump(obj_copy, f)
+
+    @staticmethod
+    def load(path: Union[str, pathlib.Path]) -> "LpRegressor":
+        """
+        Load a model from a file.
+
+        Parameters
+        ----------
+        path : Union[str, pathlib.Path]
+            The path to the file from which the model will be loaded.
+
+        Returns
+        -------
+        LpRegressor
+            The loaded model instance.
+        """
+        with open(path, 'rb') as f:
+            return pickle.load(f)
 

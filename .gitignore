@@ -8,6 +8,7 @@
 *.pyc
 *.grib
 *.idx
+*.pkl
 
 **/.secret
 lpspline.egg-info
