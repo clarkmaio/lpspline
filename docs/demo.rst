@@ -90,16 +90,17 @@ Constraints
 
     # -------------------------- Model with constraints
     anchor_points = [(-2, 1.5), (4, 2)]
-    model = (
-        # Try changing the spline using pwl or cs
-        +bs("x", knots=np.linspace(-10, 10, 30), degree=3, tag='bs')
-            .add_constraint(
-                # and fun here playing with constraint
-                Convex(start=2, end = 10),
-                Monotonic(decreasing=True, start=-10, end = -1),
-                Anchor(*anchor_points)
-            )
-    )
+model = (
+    # Try changing the spline using pwl or cs
+    +bs("x", knots=np.linspace(-10, 10, 30), degree=3, tag='bs')
+        .add_constraint(
+            # and fun here playing with constraint
+            Convex(start=2, end = 10),
+            Monotonic(decreasing=True, start=-10, end = -1),
+            Anchor(*anchor_points),
+            Bound(lower=None, upper=2.5, n=10, start=0, end=2)
+        )
+)
 
 
     # -------------------------- Model without constraints for comparison
@@ -130,27 +131,6 @@ Constraints
 
 .. image:: ../assets/demo_3.png
    :align: center
-
-
-Bound Constraint
-----------------
-
-.. code-block:: python
-
-    X = pl.DataFrame({'x': np.linspace(0, 10, 1000)})
-    y = pl.Series(np.sin(X['x']*2) * X['x'] + np.random.normal(0, 1, 1000))
-
-    estimator = (
-        +bs(term='x', knots=20)
-            .add_constraint(Bound(lower=0, upper=3, n=1000, start=6, end=100))
-    )
-    estimator.fit(X, y)
-    plot_diagnostic(model=estimator, X=X, y=y)
-
-
-.. image:: ../assets/demo_4.png
-   :align: center
-
 
 
 

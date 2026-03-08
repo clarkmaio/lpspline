@@ -29,6 +29,7 @@
 
    anchor
    base
+   bound
    concavity
    convexity
    monotonicity
