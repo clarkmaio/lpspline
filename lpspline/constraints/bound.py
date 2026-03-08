@@ -48,9 +48,9 @@ class Bound(Constraint):
         
         # Determine the default domain range for the grid
         if isinstance(s, BSpline):
-            x_min_default, x_max_default = np.min(s.knots), np.max(s.knots)
+            x_min_default, x_max_default = np.min(s.knots), np.max(s.knots) # TODO This is a proxy of spline domain, to improve
         elif isinstance(s, PiecewiseLinear):
-            x_min_default, x_max_default = np.min(s.knots), np.max(s.knots)
+            x_min_default, x_max_default = np.min(s.knots), np.max(s.knots) # TODO This is a proxy of spline domain, to improve
         elif isinstance(s, CyclicSpline):
             x_min_default, x_max_default = 0, s.period
         else:
