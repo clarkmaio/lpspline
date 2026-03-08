@@ -6,7 +6,7 @@ import cvxpy as cp
 
 
 
-def print_summary(summary_data: List[Dict[str, Any]], problem: cp.Problem) -> None:
+def print_summary(summary_data: List[Dict[str, Any]], status: str = None) -> None:
     """
     Print a formatted summary console output of the fitted regression model characteristics.
 
@@ -14,11 +14,11 @@ def print_summary(summary_data: List[Dict[str, Any]], problem: cp.Problem) -> No
     ----------
     summary_data : List[Dict[str, Any]]
         A list of mapped dictionaries detailing the specific features per Spline component.
-    problem : cp.Problem
-        The active CVXPY operational problem structure.
+    status: str
+        Problem status
     """
     total_params = sum(item["Parameters"] for item in summary_data)
-    status = problem.status if problem else "Not Fitted"
+    status = status if status is not None else "Not fitted"
     
     width = 120
     print("\n" + "="*width)

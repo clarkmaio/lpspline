@@ -30,6 +30,7 @@ class LpRegressor:
         
         self._check_tags()
         self.problem: Optional[cp.Problem] = None
+        self._summary_data = None
 
     def _check_tags(self):
         """
@@ -65,7 +66,7 @@ class LpRegressor:
         raise ValueError(f"Spline with tag '{tag}' not found.")
         
 
-    def fit(self, X: pl.DataFrame, y: pl.Series) -> None:
+    def fit(self, X: pl.DataFrame, y: pl.Series, summary: bool = True) -> None:
         """
         Compute basis coefficients mapping combinations within additive splines.
 
@@ -93,10 +94,12 @@ class LpRegressor:
             else:
                 spline.init_spline(X[spline.term].to_numpy())
 
-        total_expression, summary_data = self._build_model_expression(X)
+        total_expression, self._summary_data = self._build_model_expression(X)
         
-        self._solve_problem(total_expression, y)        
-        print_summary(summary_data, self.problem)
+        self._solve_problem(total_expression, y)       
+        self._status =  self.problem.status
+        if summary:
+            self.summary()
 
     def predict(self, X: pl.DataFrame, return_components: bool = False) -> np.ndarray:
         """
@@ -301,4 +304,10 @@ class LpRegressor:
         """
         with open(path, 'rb') as f:
             return pickle.load(f)
+
+
+    def summary(self):
+        if self._summary_data is None:
+            raise ValueError('Model has not been trained properly')
+        print_summary(self._summary_data, self._status)
 
