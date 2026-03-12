@@ -4,10 +4,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pimpmyplot as pmp
 import polars as pl
-import altair as alt
-from typing import List, Optional
+from typing import List, Optional, Any
+
 from .optimizer import LpRegressor
 from .spline.factor import Factor
+
+import altair as alt
 
 
 def _plot_partial_residuals(ax: plt.Axes, spline: object, X: pl.DataFrame, y: pl.Series, 
@@ -210,7 +212,7 @@ def _prepare_interactive_data(model: LpRegressor, X: pl.DataFrame, y: pl.Series,
         ])
     return df_plot
 
-def _create_top_chart(df_plot: pl.DataFrame, xcol: str, selector: alt.Selection, width: int, height: int) -> alt.LayerChart:
+def _create_top_chart(df_plot: pl.DataFrame, xcol: str, selector: Any, width: int, height: int) -> alt.LayerChart:
     """
     Create the top plot showing target vs model with highlighting.
 
@@ -220,7 +222,7 @@ def _create_top_chart(df_plot: pl.DataFrame, xcol: str, selector: alt.Selection,
         The prepared plotting data.
     xcol : str
         The feature name for the x-axis.
-    selector : altair.Selection
+    selector : Any
         The shared selection parameter for linked highlighting.
     width : int
         Width of the plot.
@@ -249,7 +251,7 @@ def _create_top_chart(df_plot: pl.DataFrame, xcol: str, selector: alt.Selection,
     )
     return base_top + highlight
 
-def _create_spline_chart(df_plot: pl.DataFrame, spline: object, selector: alt.Selection, width: int, height: int) -> alt.LayerChart:
+def _create_spline_chart(df_plot: pl.DataFrame, spline: object, selector: Any, width: int, height: int) -> alt.LayerChart:
     """
     Create a single spline subplot with residuals and highlight.
 
@@ -259,7 +261,7 @@ def _create_spline_chart(df_plot: pl.DataFrame, spline: object, selector: alt.Se
         The prepared plotting data.
     spline : object
         The spline component instance.
-    selector : altair.Selection
+    selector : Any
         The shared selection parameter for linked highlighting.
     width : int
         Width of the plot.
