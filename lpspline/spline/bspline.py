@@ -83,13 +83,11 @@ class BSpline(Spline):
         by : np.ndarray, default=None
             The array of grouping values.
         """
+        super().init_spline(x, by)
         if isinstance(self._knots, int):
             self._knots = np.linspace(np.min(x), np.max(x), self._knots)
         else:
             self._knots = np.sort(self._knots)
-
-        if self._by is not None:
-            self._by_classes = np.unique(by)
 
 
     def _pad_knots(self, knots: np.ndarray, degree: int) -> np.ndarray:

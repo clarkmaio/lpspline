@@ -40,8 +40,7 @@ class Linear(Spline):
         by : np.ndarray, default=None
             The grouped indexing column if modeling interactions.
         """
-        if self._by is not None:
-            self._by_classes = np.unique(by)
+        super().init_spline(x, by)
 
     def _build_basis(self, x: np.ndarray, **kwargs) -> np.ndarray:
         """

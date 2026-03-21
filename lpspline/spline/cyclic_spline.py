@@ -69,11 +69,9 @@ class CyclicSpline(Spline):
         by : np.ndarray, default=None
             The array of grouping values.
         """
+        super().init_spline(x, by)
         if self._period is None:
             self._period = np.max(x) - np.min(x)
-            
-        if self._by is not None:
-            self._by_classes = np.unique(by)
 
     def _build_basis(self, x: np.ndarray, **kwargs) -> np.ndarray:
         """

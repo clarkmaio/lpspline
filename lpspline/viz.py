@@ -124,9 +124,14 @@ def plot_diagnostic(model: LpRegressor, X: pl.DataFrame, ncols: int = 4, y: pl.S
 
     for i, spline in enumerate(model.splines):
         feature = spline.term
-        x_vals = X[feature].to_numpy()
+        x_vals_raw = X[feature].to_numpy()
         comp_vals = components[:, i]
         color = f'C{i % 10}'
+        
+        if isinstance(spline, Factor):
+            x_vals = np.array([spline._int_map.get(v, -1) for v in x_vals_raw])
+        else:
+            x_vals = x_vals_raw
         
         if y is not None:
             _plot_partial_residuals(
@@ -151,6 +156,9 @@ def plot_diagnostic(model: LpRegressor, X: pl.DataFrame, ncols: int = 4, y: pl.S
 
         axes[i].set_xlabel(feature)
         pmp.remove_axis('top', 'right', ax=axes[i])
+        if isinstance(spline, Factor):
+            axes[i].set_xticks(range(len(spline._classes)))
+            axes[i].set_xticklabels(spline._classes)
         pmp.bullet_grid(stepinch=.3, ax=axes[i], alpha=0.4)
         pmp.legend(ax=axes[i], loc='upper left', ncol=1)
 

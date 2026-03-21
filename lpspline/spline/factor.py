@@ -50,8 +50,11 @@ class Factor(Spline):
         by : np.ndarray, default=None
             The grouped indexing column if modeling interactions.
         """
+        super().init_spline(x, by)
+        self._classes = np.unique(x)
+        self._int_map = {c: i for i, c in enumerate(self._classes)}
         if self._n_classes is None:
-            self._n_classes = len(np.unique(x))
+            self._n_classes = len(self._classes)
         
 
     def _build_basis(self, x: np.ndarray) -> np.ndarray:
@@ -69,14 +72,17 @@ class Factor(Spline):
             A 2D binary matrix of shape `(n_samples, n_classes)`.
         """
         # One-hot encoding
-        x = np.array(x).flatten().astype(int)
-        n = len(x)
+        x_flat = np.array(x).flatten()
+        if getattr(self, '_int_map', None) is not None:
+            x_mapped = np.array([self._int_map.get(v, -1) for v in x_flat])
+        else:
+            x_mapped = x_flat.astype(int)
+            
+        n = len(x_mapped)
         basis = np.zeros((n, self.n_classes))
         
-        # Clip or handle out of bounds? 
-        # Assuming x is in [0, n_classes-1]
-        mask = (x >= 0) & (x < self.n_classes)
-        basis[np.arange(n)[mask], x[mask]] = 1.0
+        mask = (x_mapped >= 0) & (x_mapped < self.n_classes)
+        basis[np.arange(n)[mask], x_mapped[mask]] = 1.0
         
         return basis
 

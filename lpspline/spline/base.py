@@ -128,20 +128,21 @@ class Spline(abc.ABC):
         by : np.ndarray, default=None
             The array of grouping values, if a `by` variable is specified.
         """
-        pass
+        if self._by is not None and by is not None:
+            self.init_by(by)
 
 
-    def init_by(self, by_classes: np.ndarray):
+    def init_by(self, by: np.ndarray):
         """
         Initialize internal tracking for the unique classes in the `by` variable.
 
         Parameters
         ----------
-        by_classes : np.ndarray
-            A 1D array of the unique categorical/grouping values found in the data.
+        by : np.ndarray
+            A 1D array of the categorical/grouping values found in the data.
         """
-        self._by_classes = by_classes
-        self._by_int_map = {c: i for i, c in enumerate(by_classes)}
+        self._by_classes = np.unique(by)
+        self._by_int_map = {c: i for i, c in enumerate(self._by_classes)}
 
     def add_constraint(self, *constraints):
         """
@@ -247,14 +248,23 @@ class Spline(abc.ABC):
         Parameters
         ----------
         by : np.ndarray
-            An integer encoded 1D array of group indices.
+            A 1D array of group identifiers (strings or integers).
 
         Returns
         -------
         np.ndarray
             A 2D binary numpy array of shape `(n_samples, n_classes)`.
         """
-        return np.eye(len(self._by_classes))[by]
+        if getattr(self, '_by_int_map', None) is not None:
+            by_mapped = np.array([self._by_int_map.get(v, -1) for v in by])
+        else:
+            by_mapped = np.array(by).astype(int)
+            
+        n = len(by_mapped)
+        out = np.zeros((n, len(self._by_classes)))
+        mask = (by_mapped >= 0) & (by_mapped < len(self._by_classes))
+        out[np.arange(n)[mask], by_mapped[mask]] = 1.0
+        return out
 
     def __call__(self, x: np.ndarray, by: np.ndarray = None) -> cp.Expression:
         """
