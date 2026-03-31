@@ -94,7 +94,7 @@ Constraints
         # Try changing the spline using pwl or cs
         +bs("x", knots=np.linspace(-10, 10, 30), degree=3, tag='bs')
         .add_constraint(
-            # and fun here playing with constraint
+            # Try changing the constraint here
             Convex(start=2, end = 10),
             Monotonic(decreasing=True, start=-10, end = -1),
             Anchor(*anchor_points),
@@ -134,3 +134,41 @@ Constraints
 
 
 
+Link functions
+--------------
+
+.. code-block:: python
+
+    import numpy as np
+    import polars as pl
+    import matplotlib.pyplot as plt
+    import pimpmyplot as pmp
+
+    from lpspline import l
+    from lpspline.link import Log, Exp
+
+    # ----------------- Demo dataset
+    N = 1000
+    X = pl.DataFrame({
+        'x': np.linspace(1.,10, N)
+    })
+    y = pl.Series(np.log(X['x']) + np.random.randn(N)*0.1)
+
+    # ----------------- Model with log link
+    model = Exp(
+        +l(term='x') # This is a linear term!
+    )
+    model.fit(X, y, summary=False)
+
+    # ----------------- Plot
+    plt.scatter(X['x'], y, color='r', alpha=.5, s=10, label='target')
+    plt.scatter(X['x'], model.predict(X), color='k', alpha=.5, s=10, label='model')
+    pmp.legend()
+    pmp.remove_axis('top', 'right')
+    pmp.bullet_grid()
+    plt.title('Link regression', fontweight='bold')
+
+
+
+.. image:: ../assets/demo_4.png
+   :align: center
