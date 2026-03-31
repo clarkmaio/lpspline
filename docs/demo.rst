@@ -90,9 +90,9 @@ Constraints
 
     # -------------------------- Model with constraints
     anchor_points = [(-2, 1.5), (4, 2)]
-model = (
-    # Try changing the spline using pwl or cs
-    +bs("x", knots=np.linspace(-10, 10, 30), degree=3, tag='bs')
+    model = (
+        # Try changing the spline using pwl or cs
+        +bs("x", knots=np.linspace(-10, 10, 30), degree=3, tag='bs')
         .add_constraint(
             # and fun here playing with constraint
             Convex(start=2, end = 10),
@@ -100,7 +100,7 @@ model = (
             Anchor(*anchor_points),
             Bound(lower=None, upper=2.5, n=10, start=0, end=2)
         )
-)
+    )
 
 
     # -------------------------- Model without constraints for comparison
