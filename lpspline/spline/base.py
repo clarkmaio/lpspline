@@ -112,6 +112,8 @@ class Spline(abc.ABC):
         np.ndarray
             The computed coefficient values from the CVXPY variables.
         """
+        if isinstance(self._variables, list) or self._variables.value is None:
+            raise ValueError(f"{self!r} has not been fitted yet.")
         return np.array(self._variables.value)
 
     def init_spline(self, x: np.ndarray, by: np.ndarray = None):
@@ -128,6 +130,9 @@ class Spline(abc.ABC):
         by : np.ndarray, default=None
             The array of grouping values, if a `by` variable is specified.
         """
+        # Drop variables from any previous fit: their shape depends on the data
+        # (knots, number of `by` groups, number of classes...).
+        self._variables = []
         if self._by is not None and by is not None:
             self.init_by(by)
 
@@ -327,15 +332,16 @@ class Spline(abc.ABC):
         AssertionError
             If the spline has not been fitted and coefficients are not available.
         """
-        assert self.coefficients is not None, "Spline has not been fitted."
-        
+        coefficients = self.coefficients  # raises if not fitted
         basis = self._build_basis(x)
+        if return_basis:
+            return basis
 
         if by is None:
-            return basis @ self.coefficients
+            return basis @ coefficients
         else:
             onehotby = self._build_one_hot_matrix(by=by)
-            out = basis @ self.coefficients
+            out = basis @ coefficients
             out = np.multiply(out, onehotby)
             out = np.sum(out, axis=1)
             return out
@@ -366,8 +372,10 @@ class Spline(abc.ABC):
         if isinstance(other, Spline):
             return LpRegressor([self, other])
         elif isinstance(other, LpRegressor):
-             other.splines.append(self)
-             return other
+            # Keep the written order: `spline + model` puts the spline first.
+            other.splines.insert(0, self)
+            other._check_tags()
+            return other
         else:
             raise TypeError(f"Cannot add Spline and {type(other)}")
 

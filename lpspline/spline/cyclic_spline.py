@@ -27,6 +27,7 @@ class CyclicSpline(Spline):
         """
         super().__init__(term=term, tag=tag)
         self._period = period
+        self._period_spec = period
         self._order = order
         self._by = by
         self._variables = []
@@ -70,6 +71,7 @@ class CyclicSpline(Spline):
             The array of grouping values.
         """
         super().init_spline(x, by)
+        self._period = getattr(self, '_period_spec', self._period)
         if self._period is None:
             self._period = np.max(x) - np.min(x)
 

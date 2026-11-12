@@ -27,6 +27,7 @@ class BSpline(Spline):
         """
         super().__init__(term=term, tag=tag)
         self._knots = knots
+        self._knots_spec = knots
         self._degree = degree
         self._by = by
         self._by_classes = None
@@ -84,10 +85,12 @@ class BSpline(Spline):
             The array of grouping values.
         """
         super().init_spline(x, by)
-        if isinstance(self._knots, int):
-            self._knots = np.linspace(np.min(x), np.max(x), self._knots)
+        # Recompute from the user's original spec so refitting on new data works.
+        spec = getattr(self, '_knots_spec', self._knots)
+        if isinstance(spec, (int, np.integer)):
+            self._knots = np.linspace(np.min(x), np.max(x), int(spec))
         else:
-            self._knots = np.sort(self._knots)
+            self._knots = np.sort(np.asarray(spec, dtype=float))
 
 
     def _pad_knots(self, knots: np.ndarray, degree: int) -> np.ndarray:

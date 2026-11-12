@@ -24,6 +24,7 @@ class Factor(Spline):
         """
         super().__init__(term=term, tag=tag)
         self._n_classes = n_classes
+        self._n_classes_spec = n_classes
         self._variables = []
 
     @property
@@ -53,6 +54,7 @@ class Factor(Spline):
         super().init_spline(x, by)
         self._classes = np.unique(x)
         self._int_map = {c: i for i, c in enumerate(self._classes)}
+        self._n_classes = getattr(self, '_n_classes_spec', self._n_classes)
         if self._n_classes is None:
             self._n_classes = len(self._classes)
         

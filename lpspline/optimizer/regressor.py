@@ -4,7 +4,7 @@ import cvxpy as cp
 import numpy as np
 import pickle
 import pathlib
-import copy
+import warnings
 from typing import List, Optional, Union, Dict, Any, Tuple
 from ..spline import base as base_spline
 from .summary import print_summary
@@ -31,6 +31,7 @@ class LpRegressor:
         self._check_tags()
         self.problem: Optional[cp.Problem] = None
         self._summary_data = None
+        self._status: Optional[str] = None
 
     def _check_tags(self):
         """
@@ -66,7 +67,8 @@ class LpRegressor:
         raise ValueError(f"Spline with tag '{tag}' not found.")
         
 
-    def fit(self, X: pl.DataFrame, y: pl.Series, summary: bool = True) -> None:
+    def fit(self, X: pl.DataFrame, y: pl.Series, summary: bool = True,
+            solver: Optional[str] = None, **solver_kwargs: Any) -> None:
         """
         Compute basis coefficients mapping combinations within additive splines.
 
@@ -79,6 +81,14 @@ class LpRegressor:
             The independent predictive training feature frame subset containing all modeled keys.
         y : pl.Series
             Dependent observation labels associated mapping.
+        summary : bool, default=True
+            Whether to print the model summary after fitting.
+        solver : Optional[str], default=None
+            CVXPY solver name. Defaults to CLARABEL when installed: the CVXPY default
+            for these problems (OSQP) frequently stops at `user_limit` or
+            `optimal_inaccurate`, leaving constraints only approximately satisfied.
+        **solver_kwargs : Any
+            Extra keyword arguments forwarded to `cvxpy.Problem.solve`.
 
         Raises
         ------
@@ -96,8 +106,15 @@ class LpRegressor:
 
         total_expression, self._summary_data = self._build_model_expression(X)
         
-        self._solve_problem(total_expression, y)       
-        self._status =  self.problem.status
+        self._solve_problem(total_expression, y, solver=solver, **solver_kwargs)
+        self._status = self.problem.status
+        if self._status != cp.OPTIMAL:
+            warnings.warn(
+                f"Optimization finished with status '{self._status}'; "
+                "coefficients may be inaccurate or missing.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
         if summary:
             self.summary()
 
@@ -187,13 +204,13 @@ class LpRegressor:
         """
         if isinstance(other, base_spline.Spline):
             self.splines.append(other)
-            return self
         elif isinstance(other, LpRegressor):
             self.splines.extend(other.splines)
-            return self
         else:
-             raise TypeError(f"Cannot add LpRegressor and {type(other)}")
-    
+            raise TypeError(f"Cannot add LpRegressor and {type(other)}")
+        self._check_tags()
+        return self
+
     def __repr__(self):
         return f"LpRegressor(splines={self.splines})"
 
@@ -231,7 +248,7 @@ class LpRegressor:
                 spline_expr = spline(x_data)
             
             # Collect info for summary
-            num_params = sum(v.size for v in spline._variables)
+            num_params = spline.variables.size
             constraint_names = [type(c).__name__ for c in spline.constraints]
             constraints_str = ", ".join(constraint_names) if constraint_names else "None"
             penalty_names = [type(p).__name__ for p in getattr(spline, 'penalties', [])]
@@ -250,11 +267,25 @@ class LpRegressor:
             
         return total_expression, summary_data
 
-    def _solve_problem(self, expression: cp.Expression, y: pl.Series) -> None:
+    def _solve_problem(self, expression: cp.Expression, y: pl.Series,
+                       solver: Optional[str] = None, **solver_kwargs: Any) -> None:
         """
         Set up and solve the convex optimization problem.
+
+        Parameters
+        ----------
+        expression : cp.Expression
+            Sum of all spline expressions.
+        y : pl.Series
+            Target values.
+        solver : Optional[str], default=None
+            CVXPY solver name; CLARABEL is used when None and available.
+        **solver_kwargs : Any
+            Extra keyword arguments forwarded to `cvxpy.Problem.solve`.
         """
-        y_np = y.to_numpy()
+        y_np = np.asarray(y.to_numpy(), dtype=float)
+        if len(y_np) != expression.shape[0]:
+            raise ValueError(f"X has {expression.shape[0]} rows but y has {len(y_np)}.")
         
         main_loss = cp.sum_squares(expression - y_np)
         penalty_loss = 0
@@ -270,7 +301,9 @@ class LpRegressor:
         objective = cp.Minimize(main_loss + penalty_loss)
         
         self.problem = cp.Problem(objective, all_constraints)
-        self.problem.solve()
+        if solver is None and cp.CLARABEL in cp.installed_solvers():
+            solver = cp.CLARABEL
+        self.problem.solve(solver=solver, **solver_kwargs)
 
     def save(self, path: Union[str, pathlib.Path]) -> None:
         """
@@ -281,11 +314,8 @@ class LpRegressor:
         path : Union[str, pathlib.Path]
             The path to the file where the model will be saved.
         """
-        obj_copy = copy.copy(self)
-        obj_copy.problem = None
-        
         with open(path, 'wb') as f:
-            pickle.dump(obj_copy, f)
+            pickle.dump(self, f)
 
     @staticmethod
     def load(path: Union[str, pathlib.Path]) -> "LpRegressor":
@@ -306,7 +336,21 @@ class LpRegressor:
             return pickle.load(f)
 
 
-    def summary(self):
+    def __getstate__(self) -> Dict[str, Any]:
+        """Drop the cvxpy Problem when pickling: it is large and not needed to predict."""
+        state = self.__dict__.copy()
+        state['problem'] = None
+        return state
+
+    def summary(self) -> None:
+        """
+        Print the model summary.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted.
+        """
         if self._summary_data is None:
             raise ValueError('Model has not been trained properly')
         print_summary(self._summary_data, self._status)
