@@ -4,13 +4,18 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import os
+import re
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
+with open(os.path.join(os.path.dirname(__file__), '..', 'lpspline', '__init__.py'), encoding='utf-8') as fh:
+    _version = re.search(r'^__version__ = "([^"]+)"', fh.read(), re.M).group(1)
+
 project = 'lpspline'
-copyright = '2024, clarkmaio'
+copyright = '2024-2026, clarkmaio'
 author = 'clarkmaio'
-release = '0.1.5'
+release = _version
+version = _version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -30,8 +35,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'pydata_sphinx_theme'
-html_static_path = ['_static']
-
 # Hide the "This Page / Show Source" box: the raw .rst source is not useful to readers.
 html_show_sourcelink = False
 html_logo = "../assets/logo_round.png"

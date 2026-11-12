@@ -1,3 +1,7 @@
+"""LPSpline: constrained additive spline models fitted with convex optimization."""
+
+__version__ = "1.0.0"
+
 from .optimizer import LpRegressor
 
 from .spline import Linear as l

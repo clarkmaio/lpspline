@@ -1,3 +1,10 @@
 include requirements.txt
 include README.md
-include AGENTS.md
+include LICENSE
+
+# Keep the source distribution lightweight: images, docs and notebooks live in
+# the repository (and on Read the Docs), not in the package.
+prune assets
+prune docs
+prune notebook
+global-exclude *.png *.jpg *.ipynb *.py[cod] __pycache__
