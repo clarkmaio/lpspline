@@ -6,6 +6,9 @@ from ..optimizer import LpRegressor
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
+def _identity(x):
+    return x
+
 def logit(p):
     p = np.clip(p, 1e-15, 1 - 1e-15)
     return np.log(p / (1 - p))
@@ -45,8 +48,9 @@ class Link(LpRegressor):
         self._summary_data = getattr(regressor, '_summary_data', None)
         self._status = getattr(regressor, '_status', None)
         
-        self._link = link if link is not None else lambda x: x
-        self._inv_link = inv_link if inv_link is not None else lambda x: x
+        # Module-level identity (not a lambda) keeps the model picklable.
+        self._link = link if link is not None else _identity
+        self._inv_link = inv_link if inv_link is not None else _identity
 
     def link(self, x):
         """Apply the link function."""
@@ -89,6 +93,10 @@ class Link(LpRegressor):
 
     def __getattr__(self, name):
         """Delegate attribute access to the wrapped regressor."""
+        # Guard against infinite recursion while `regressor` is not yet set
+        # (e.g. during unpickling/copying) and never delegate dunder lookups.
+        if name == 'regressor' or (name.startswith('__') and name.endswith('__')):
+            raise AttributeError(name)
         return getattr(self.regressor, name)
 
     def __repr__(self):
