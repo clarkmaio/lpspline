@@ -1,4 +1,4 @@
-lpspline.constraints.base
+﻿lpspline.constraints.base
 =========================
 
 .. automodule:: lpspline.constraints.base
@@ -8,6 +8,14 @@ lpspline.constraints.base
    
 
    
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+   
+      describe_window
+      window_bounds
    
    
 
@@ -20,6 +28,7 @@ lpspline.constraints.base
       :template: autosummary/class.rst
    
       Constraint
+      ShapeConstraint
    
    
 

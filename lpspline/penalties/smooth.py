@@ -77,7 +77,7 @@ class Lasso(Penalty):
 
     def build_penalty(self, s: Spline) -> list:
         """
-        Creates a Lasso penalty sum sequence evaluating $alpha * \\sum |v|$.
+        Creates a Lasso penalty ``alpha * sum(abs(v))``.
         
         Parameters
         ----------

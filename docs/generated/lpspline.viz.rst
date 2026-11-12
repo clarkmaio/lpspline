@@ -15,6 +15,7 @@
       :toctree:
    
       plot_diagnostic
+      plot_interactive
    
    
 

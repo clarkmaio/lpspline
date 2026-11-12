@@ -31,6 +31,9 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 html_theme = 'pydata_sphinx_theme'
 html_static_path = ['_static']
+
+# Hide the "This Page / Show Source" box: the raw .rst source is not useful to readers.
+html_show_sourcelink = False
 html_logo = "../assets/logo_round.png"
 
 html_theme_options = {
@@ -46,6 +49,7 @@ html_theme_options = {
         },
     ],
     "show_toc_level": 2,
+    "secondary_sidebar_items": ["page-toc"],
     "navigation_depth": 4,
 }
 

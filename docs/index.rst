@@ -35,9 +35,12 @@ The package requires the following dependencies:
 
 .. code-block:: bash
 
+   numpy
    polars
    cvxpy
+   matplotlib
    pimpmyplot
+   altair
 
 They will be automatically installed when installing **lpspline**.
 

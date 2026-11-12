@@ -1,13 +1,27 @@
-lpspline.spline.base
+﻿lpspline.spline.base
 ====================
 
 .. automodule:: lpspline.spline.base
 
    
    
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+      :toctree:
+   
+      CONSTRAINT_METHODS
+   
    
 
    
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+   
+      evaluate_condition
    
    
 
