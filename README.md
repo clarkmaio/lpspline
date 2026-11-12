@@ -43,7 +43,7 @@ Here a small code example:
 ```python
 import numpy as np
 import polars as pl
-from lpspline import l, pwl, bs, cs
+from lpspline import l, pwl, bs, cs, f
 from lpspline.viz import plot_diagnostic
 from lpspline.datasets import load_demo_dataset
 

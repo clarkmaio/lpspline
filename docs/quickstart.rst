@@ -171,7 +171,7 @@ In practice for each spline :math:`s_i` it will be shown:
 
 .. code-block:: python
 
-   from lpspline import plot_diagnostic
+   from lpspline.viz import plot_diagnostic
 
    plot_diagnostic(model=mymodel, X=X, y=y)
 

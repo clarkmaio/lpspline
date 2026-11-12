@@ -1,6 +1,8 @@
 
 
+numpy
 polars
 cvxpy
+matplotlib
 pimpmyplot
 altair
