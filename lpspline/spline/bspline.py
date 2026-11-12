@@ -112,17 +112,19 @@ class BSpline(Spline):
         np.ndarray
             The padded knot sequence.
         """
-        t_input = knots
-        k = degree
+        knots = np.asarray(knots, dtype=float)
+        if len(knots) < 2:
+            raise ValueError("BSpline requires at least 2 knots.")
 
-        lowstep = t_input[1] - t_input[0]
-        highstep = t_input[-1] - t_input[-2]
+        lowstep = knots[1] - knots[0]
+        highstep = knots[-1] - knots[-2]
+        steps = np.arange(1, degree + 1)
 
-        for i in range(k):
-            t_input = np.insert(t_input, 0, t_input[0] - lowstep)
-            t_input = np.insert(t_input, -1, t_input[-1] + highstep)
-            
-        return t_input
+        # Note: np.insert(arr, -1, v) inserts *before* the last element, which
+        # previously produced a non-monotonic knot vector. Use concatenation.
+        low_pad = knots[0] - lowstep * steps[::-1]
+        high_pad = knots[-1] + highstep * steps
+        return np.concatenate([low_pad, knots, high_pad])
 
     def _build_basis(self, x: np.ndarray, **kwargs) -> np.ndarray:
         """
