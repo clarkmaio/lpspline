@@ -36,12 +36,16 @@ def print_summary(summary_data: List[Dict[str, Any]], status: str = None) -> Non
         print(f"🟢 {item['Spline Type']:<17} | {item['Term']:<12} | {tag_str:<15} | {item['Constraints']:<20} | {penalties_str:<20} | {item['Parameters']:<8}")
     print("-" * width)
     print(f"{'📊 Total Parameters':<98} | {total_params}")
-    masked = [item for item in summary_data if item.get("Train on") or item.get("Active where")]
-    if masked:
+    detailed = [item for item in summary_data
+                if item.get("Constraint details") or item.get("Train on") or item.get("Active where")]
+    if detailed:
         print("-" * width)
-        print("\033[1mRow subsets\033[0m")
-        for item in masked:
-            print(f"🎯 {item['Tag']} ({item.get('Rows')} training rows)")
+        print("\033[1mDetails\033[0m")
+        for item in detailed:
+            rows = f" ({item['Rows']} training rows)" if item.get("Rows") is not None else ""
+            print(f"🎯 {item['Tag']}{rows}")
+            for desc in item.get("Constraint details") or []:
+                print(f"     constraint:   {desc}")
             if item.get("Train on"):
                 print(f"     train_on:     {item['Train on']}")
             if item.get("Active where"):

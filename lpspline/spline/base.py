@@ -1,10 +1,17 @@
 
 import abc
-from typing import List, Optional
+import warnings
+from typing import Any, Iterable, List, Optional, Sequence, Tuple
 
 import cvxpy as cp
 import numpy as np
 import polars as pl
+
+from ..constraints import Anchor, Bound, Concave, Constraint, Convex, Monotonic
+from ..constraints.base import ShapeConstraint
+
+#: All constraint methods, in the order they are documented.
+CONSTRAINT_METHODS = ("increasing", "decreasing", "convex", "concave", "bounded", "passes_through")
 
 
 def evaluate_condition(condition: pl.Expr, X: pl.DataFrame) -> np.ndarray:
@@ -57,6 +64,9 @@ class Spline(abc.ABC):
     """
     Abstract base class for all spline types.
     """
+
+    #: Constraint methods this spline type supports (see `CONSTRAINT_METHODS`).
+    supported_constraints: frozenset = frozenset()
     def __init__(self, term: str, tag: Optional[str] = None):
         """
         Initialize the Spline component.
@@ -185,6 +195,11 @@ class Spline(abc.ABC):
         # Drop variables from any previous fit: their shape depends on the data
         # (knots, number of `by` groups, number of classes...).
         self._variables = []
+        x_arr = np.asarray(x)
+        self._x_range = (
+            (float(np.nanmin(x_arr)), float(np.nanmax(x_arr)))
+            if x_arr.size and np.issubdtype(x_arr.dtype, np.number) else None
+        )
         if self._by is not None and by is not None:
             self.init_by(by)
 
@@ -322,44 +337,276 @@ class Spline(abc.ABC):
         """
         return self.train_mask(X) & self.active_mask(X)
 
-    def add_constraint(self, *constraints):
-        """
-        Add one or more shape constraints to the spline.
+    # ------------------------------------------------------------------ constraints
 
-        Not all splines can accept all constraints. This function validates the
-        compatibility of the constraints with the current spline type.
+    def increasing(self, start: Optional[float] = None, end: Optional[float] = None,
+                   groups: Optional[Iterable[Any]] = None) -> "Spline":
+        """
+        Constrain the spline to be non-decreasing.
 
         Parameters
         ----------
-        *constraints : Constraint
-            One or more Constraint objects to apply (e.g., Monotonic, Convex).
+        start : float, default=None
+            Only from this value of the feature on (unbounded if None).
+        end : float, default=None
+            Only up to this value of the feature (unbounded if None).
+        groups : Iterable, default=None
+            For splines with `by`: the groups to constrain (all if None).
 
         Returns
         -------
         Spline
-            Returns the spline instance to allow methodical chaining.
+            The spline itself, to allow chaining.
+        """
+        return self._add_constraint(Monotonic(start=start, end=end, groups=groups))
+
+    def decreasing(self, start: Optional[float] = None, end: Optional[float] = None,
+                   groups: Optional[Iterable[Any]] = None) -> "Spline":
+        """
+        Constrain the spline to be non-increasing.
+
+        Parameters
+        ----------
+        start : float, default=None
+            Only from this value of the feature on (unbounded if None).
+        end : float, default=None
+            Only up to this value of the feature (unbounded if None).
+        groups : Iterable, default=None
+            For splines with `by`: the groups to constrain (all if None).
+
+        Returns
+        -------
+        Spline
+            The spline itself, to allow chaining.
+        """
+        return self._add_constraint(Monotonic(start=start, end=end, decreasing=True, groups=groups))
+
+    def convex(self, start: Optional[float] = None, end: Optional[float] = None,
+               groups: Optional[Iterable[Any]] = None) -> "Spline":
+        """
+        Constrain the spline to be convex (non-decreasing slope).
+
+        Parameters
+        ----------
+        start : float, default=None
+            Only from this value of the feature on (unbounded if None).
+        end : float, default=None
+            Only up to this value of the feature (unbounded if None).
+        groups : Iterable, default=None
+            For splines with `by`: the groups to constrain (all if None).
+
+        Returns
+        -------
+        Spline
+            The spline itself, to allow chaining.
+        """
+        return self._add_constraint(Convex(start=start, end=end, groups=groups))
+
+    def concave(self, start: Optional[float] = None, end: Optional[float] = None,
+                groups: Optional[Iterable[Any]] = None) -> "Spline":
+        """
+        Constrain the spline to be concave (non-increasing slope).
+
+        Parameters
+        ----------
+        start : float, default=None
+            Only from this value of the feature on (unbounded if None).
+        end : float, default=None
+            Only up to this value of the feature (unbounded if None).
+        groups : Iterable, default=None
+            For splines with `by`: the groups to constrain (all if None).
+
+        Returns
+        -------
+        Spline
+            The spline itself, to allow chaining.
+        """
+        return self._add_constraint(Concave(start=start, end=end, groups=groups))
+
+    def bounded(self, lower: Optional[float] = None, upper: Optional[float] = None,
+                start: Optional[float] = None, end: Optional[float] = None, n: int = 100,
+                groups: Optional[Iterable[Any]] = None) -> "Spline":
+        """
+        Keep the spline values within ``[lower, upper]``.
+
+        The spline is checked on a grid of `n` points plus its knots: exact for
+        piecewise-linear splines, on the grid for smoother ones.
+
+        Parameters
+        ----------
+        lower : float, default=None
+            Lower bound (none if None).
+        upper : float, default=None
+            Upper bound (none if None).
+        start : float, default=None
+            Only from this value of the feature on (domain start if None).
+        end : float, default=None
+            Only up to this value of the feature (domain end if None).
+        n : int, default=100
+            Number of grid points.
+        groups : Iterable, default=None
+            For splines with `by`: the groups to constrain (all if None).
+
+        Returns
+        -------
+        Spline
+            The spline itself, to allow chaining.
+        """
+        return self._add_constraint(Bound(lower=lower, upper=upper, n=n, start=start, end=end, groups=groups))
+
+    def passes_through(self, points: Sequence[Tuple[Any, float]],
+                       groups: Optional[Iterable[Any]] = None) -> "Spline":
+        """
+        Force the spline through the given points.
+
+        Parameters
+        ----------
+        points : Sequence[Tuple[Any, float]]
+            List of ``(x, y)`` tuples, e.g. ``[(5, 2), (1, -1)]``.
+        groups : Iterable, default=None
+            For splines with `by`: the groups to constrain (all if None).
+
+        Returns
+        -------
+        Spline
+            The spline itself, to allow chaining.
+        """
+        return self._add_constraint(Anchor(points=points, groups=groups))
+
+    def _add_constraint(self, constraint: Constraint) -> "Spline":
+        """Validate a constraint against this spline type and store it."""
+        if constraint.method not in self.supported_constraints:
+            supported = [m for m in CONSTRAINT_METHODS if m in self.supported_constraints]
+            raise TypeError(
+                f"{type(self).__name__} does not support {constraint.method}(); "
+                f"supported: {', '.join(supported) if supported else 'none'}."
+            )
+        if constraint.groups is not None and self.by is None:
+            raise ValueError(f"{constraint.method}(groups=...) needs a spline with a `by` column.")
+        self._validate_constraint(constraint)
+        self._constraints.append(constraint)
+        return self
+
+    def _validate_constraint(self, constraint: Constraint) -> None:
+        """Hook for spline-specific checks when a constraint is added."""
+
+    def add_constraint(self, *constraints: Constraint) -> "Spline":
+        """
+        Add constraint objects (deprecated).
+
+        .. deprecated::
+            Use the spline methods instead: ``increasing``, ``decreasing``,
+            ``convex``, ``concave``, ``bounded``, ``passes_through``.
+
+        Parameters
+        ----------
+        *constraints : Constraint
+            Constraint objects such as ``Monotonic()`` or ``Bound(lower=0)``.
+
+        Returns
+        -------
+        Spline
+            The spline itself, to allow chaining.
+        """
+        for c in constraints:
+            if not isinstance(c, Constraint):
+                raise TypeError(f"Expected a Constraint instance, got {type(c).__name__}")
+            warnings.warn(
+                f"add_constraint({type(c).__name__}(...)) is deprecated: use "
+                f".{c.method}(...) on the spline instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self._add_constraint(c)
+        return self
+
+    def _coefficient_groups(self, groups: Optional[Iterable[Any]] = None) -> List[cp.Expression]:
+        """
+        Coefficient vectors to constrain: one per selected `by` group (or the only one).
+
+        Parameters
+        ----------
+        groups : Iterable, default=None
+            Group values; None selects every group.
+
+        Returns
+        -------
+        List[cp.Expression]
+            1D coefficient expressions.
 
         Raises
         ------
         ValueError
-            If a given constraint is incompatible with this spline type.
+            If a requested group is not present in the training data.
         """
-        from ..constraints import Monotonic, Convex, Concave, Bound
-        from .cyclic_spline import CyclicSpline
-        from .factor import Factor
-        from .linear import Linear
-        from .piecewise_linear import PiecewiseLinear
-        
-        for c in constraints:
-            if isinstance(self, (CyclicSpline, Factor)):
-                if isinstance(c, (Monotonic, Convex, Concave)):
-                    raise ValueError(f"{type(self).__name__} cannot accept {type(c).__name__} constraint.")
-            if isinstance(self, (Linear)):
-                if isinstance(c, (Convex, Concave)):
-                    raise ValueError(f"{type(self).__name__} cannot accept {type(c).__name__} constraint.")
-                
-            self._constraints.append(c)
-        return self
+        variables = self._build_variables()
+        if self.by is None or len(variables.shape) == 1:
+            return [variables]
+        if groups is None:
+            return [variables[:, i] for i in range(variables.shape[1])]
+        missing = [g for g in groups if g not in self._by_int_map]
+        if missing:
+            raise ValueError(
+                f"Constraint groups {missing} not found in the training data of '{self.by}' "
+                f"(available: {list(self._by_classes)})."
+            )
+        return [variables[:, self._by_int_map[g]] for g in groups]
+
+    def _slope_constraints(self, v: cp.Expression, lo: float, hi: float, sign: int) -> list:
+        """CVXPY constraints making ``sign * slope >= 0`` on ``[lo, hi]`` (override per spline)."""
+        raise NotImplementedError(f"{type(self).__name__} has no slope constraints.")
+
+    def _curvature_constraints(self, v: cp.Expression, lo: float, hi: float, sign: int) -> list:
+        """CVXPY constraints making ``sign * curvature >= 0`` on ``[lo, hi]`` (override per spline)."""
+        raise NotImplementedError(f"{type(self).__name__} has no curvature constraints.")
+
+    def _breakpoints(self) -> np.ndarray:
+        """Feature values where the spline may change slope abruptly (e.g. knots)."""
+        return np.array([])
+
+    def _bound_domain(self) -> Tuple[float, float]:
+        """Default region checked by `bounded` when `start`/`end` are not given."""
+        x_range = getattr(self, '_x_range', None)
+        if x_range is None:
+            raise ValueError(f"Cannot infer the domain of {self!r}: pass start and end to bounded().")
+        return x_range
+
+    def _bound_basis(self, start: Optional[float], end: Optional[float], n: int) -> np.ndarray:
+        """Basis rows at which `bounded` checks the spline values."""
+        if start is None or end is None:
+            d_lo, d_hi = self._bound_domain()
+            start = d_lo if start is None else start
+            end = d_hi if end is None else end
+        grid = np.linspace(start, end, n)
+        knots = np.asarray(self._breakpoints(), dtype=float)
+        grid = np.union1d(grid, knots[(knots >= start) & (knots <= end)])
+        return self._build_basis(grid)
+
+    def _check_constraint_conflicts(self) -> None:
+        """
+        Raise early on constraints that obviously contradict each other.
+
+        Currently: a `passes_through` point outside a `bounded` range that covers it.
+
+        Raises
+        ------
+        ValueError
+            If a conflict is found.
+        """
+        anchors = [c for c in self._constraints if isinstance(c, Anchor)]
+        bounds = [c for c in self._constraints if isinstance(c, Bound)]
+        for a in anchors:
+            for b in bounds:
+                if a.groups is not None and b.groups is not None and not set(a.groups) & set(b.groups):
+                    continue
+                lo, hi = b.window
+                for x, y in a.points:
+                    inside = not isinstance(x, (int, float, np.number)) or lo <= x <= hi
+                    if inside and ((b.lower is not None and y < b.lower) or (b.upper is not None and y > b.upper)):
+                        raise ValueError(
+                            f"Spline '{self.tag}': {a.describe(self.term)} conflicts with "
+                            f"{b.describe(self.term)}."
+                        )
 
     def add_penalty(self, *penalties):
         """

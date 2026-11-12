@@ -3,7 +3,6 @@ import numpy as np
 import polars as pl
 from lpspline.spline import PiecewiseLinear, BSpline, CyclicSpline, Linear
 from lpspline import LpRegressor
-from lpspline.constraints import Bound
 
 class TestBoundConstraint:
     def test_bspline_bound_lower(self):
@@ -14,7 +13,7 @@ class TestBoundConstraint:
         
         # Without bound, min(y) is 0
         # With bound >= 0.5, all preds should be >= 0.5
-        s = BSpline("x", knots=5, degree=3).add_constraint(Bound(lower=0.5))
+        s = BSpline("x", knots=5, degree=3).bounded(lower=0.5)
         model = LpRegressor(s)
         model.fit(df, pl.Series("y", y))
         
@@ -27,7 +26,7 @@ class TestBoundConstraint:
         y = x
         df = pl.DataFrame({"x": x})
         
-        s = PiecewiseLinear("x", knots=5).add_constraint(Bound(upper=0.2))
+        s = PiecewiseLinear("x", knots=5).bounded(upper=0.2)
         model = LpRegressor(s)
         model.fit(df, pl.Series("y", y))
         
@@ -41,7 +40,7 @@ class TestBoundConstraint:
         df = pl.DataFrame({"x": x})
         
         # Bound sin(x) between -0.5 and 0.5
-        s = CyclicSpline("x", period=2*np.pi, order=3).add_constraint(Bound(lower=-0.5, upper=0.5, n=200))
+        s = CyclicSpline("x", period=2*np.pi, order=3).bounded(lower=-0.5, upper=0.5, n=200)
         model = LpRegressor(s)
         model.fit(df, pl.Series("y", y))
         
@@ -56,7 +55,7 @@ class TestBoundConstraint:
         df = pl.DataFrame({"x": x})
         
         # Bound [0, 0.5] to be >= 0.6
-        s = BSpline("x", knots=20, degree=1).add_constraint(Bound(lower=0.6, start=0.0, end=0.5))
+        s = BSpline("x", knots=20, degree=1).bounded(lower=0.6, start=0.0, end=0.5)
         model = LpRegressor(s)
         model.fit(df, pl.Series("y", y))
         

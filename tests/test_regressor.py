@@ -4,7 +4,6 @@ import polars as pl
 import pytest
 
 from lpspline import LpRegressor, Exp, Link, Log, Sigmoid, bs, c, cs, f, l, pwl
-from lpspline.constraints import Monotonic
 from lpspline.datasets import load_by_dataset, load_demo_dataset
 from lpspline.penalties import Lasso, Ridge
 
@@ -201,7 +200,7 @@ def test_solver_choice_and_kwargs(demo):
 
 def test_non_optimal_status_warns(demo):
     X, y = demo
-    model = +bs("xbs", knots=6).add_constraint(Monotonic())
+    model = +bs("xbs", knots=6).increasing()
     with pytest.warns(RuntimeWarning, match="status"):
         model.fit(X, y, summary=False, solver="SCS", max_iters=1)
 

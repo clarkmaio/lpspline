@@ -1,78 +1,62 @@
-import cvxpy as cp
-import numpy as np
-from .base import Constraint, group_chunks
+"""Bound constraint (created by ``Spline.bounded``)."""
+from typing import Any, Iterable, Optional
+
+from .base import Constraint, _fmt, describe_window
+
 
 class Bound(Constraint):
     """
-    Constraint enforcing lower and upper bounds on the spline output values
-    using a grid-based discretization approach.
-    """
-    def __init__(self, lower: float = None, upper: float = None, n: int = 100, start: float = None, end: float = None):
-        """
-        Initialize the Bound constraint.
+    Keep the spline values within ``[lower, upper]`` on a window.
 
-        Parameters
-        ----------
-        lower : float, default=None
-            The lower bound for the spline output. If None, no lower bound is enforced.
-        upper : float, default=None
-            The upper bound for the spline output. If None, no upper bound is enforced.
-        n : int, default=100
-            The number of grid points used to discretize the constraint.
-        start : float, default=None
-            The domain starting coordinate to bound the constraint enforcement region.
-        end : float, default=None
-            The domain ending coordinate for the constraint region.
-        """
+    The spline is evaluated on a grid of ``n`` points plus its breakpoints
+    (knots), so the bound is exact for piecewise-linear splines and holds on the
+    grid for smoother ones. Prefer the spline method ``bounded(...)``.
+
+    Parameters
+    ----------
+    lower : float, default=None
+        Lower bound (none if None).
+    upper : float, default=None
+        Upper bound (none if None).
+    n : int, default=100
+        Number of grid points.
+    start : float, default=None
+        Lower edge of the region (spline domain if None).
+    end : float, default=None
+        Upper edge of the region (spline domain if None).
+    groups : Iterable, default=None
+        `by` groups the constraint applies to (all if None).
+    """
+
+    method = "bounded"
+
+    def __init__(self, lower: Optional[float] = None, upper: Optional[float] = None, n: int = 100,
+                 start: Optional[float] = None, end: Optional[float] = None,
+                 groups: Optional[Iterable[Any]] = None) -> None:
+        super().__init__(start=start, end=end, groups=groups)
+        if lower is None and upper is None:
+            raise ValueError("bounded() needs at least one of `lower` or `upper`.")
+        if lower is not None and upper is not None and lower > upper:
+            raise ValueError(f"lower ({lower}) must be <= upper ({upper}).")
+        if n < 2:
+            raise ValueError("n must be >= 2.")
         self.lower = lower
         self.upper = upper
         self.n = n
-        self.start = start
-        self.end = end
 
     def build_constraint(self, s) -> list:
-        """
-        Constructs the CVXPY bound constraints by evaluating the spline basis on a grid.
-
-        Parameters
-        ----------
-        s : Spline
-            The parent Spline applying this restriction.
-
-        Returns
-        -------
-        list
-            A list containing CVXPY constraint objects.
-        """
-        from ..spline import BSpline, CyclicSpline, PiecewiseLinear
-        
-        # Determine the default domain range for the grid
-        if isinstance(s, BSpline):
-            x_min_default, x_max_default = np.min(s.knots), np.max(s.knots) # TODO This is a proxy of spline domain, to improve
-        elif isinstance(s, PiecewiseLinear):
-            x_min_default, x_max_default = np.min(s.knots), np.max(s.knots) # TODO This is a proxy of spline domain, to improve
-        elif isinstance(s, CyclicSpline):
-            x_min_default, x_max_default = 0, s.period
-        else:
-            raise ValueError(f"Bound constraint not supported for spline of type '{type(s).__name__}'")
-
-        # Use explicitly provided start/end if available
-        x_min = self.start if self.start is not None else x_min_default
-        x_max = self.end if self.end is not None else x_max_default
-
-        grid = np.linspace(x_min, x_max, self.n)
-        if isinstance(s, (BSpline, PiecewiseLinear)):
-            # Extremes of piecewise-linear curves lie on knots: include them so the
-            # bound is exact for PiecewiseLinear and degree-1 BSpline.
-            knots = np.asarray(s.knots, dtype=float)
-            grid = np.union1d(grid, knots[(knots >= x_min) & (knots <= x_max)])
-        basis = s._build_basis(grid)
-
+        """Bound the spline values at the evaluation points of the window."""
+        basis = s._bound_basis(self.start, self.end, self.n)
         constraints = []
-        for v_chunk in group_chunks(s, s._build_variables()):
-            expr = basis @ v_chunk
+        for v in s._coefficient_groups(self.groups):
+            expr = basis @ v
             if self.lower is not None:
                 constraints.append(expr >= self.lower)
             if self.upper is not None:
                 constraints.append(expr <= self.upper)
         return constraints
+
+    def describe(self, term: str = "x") -> str:
+        lo = "-∞" if self.lower is None else _fmt(self.lower)
+        hi = "∞" if self.upper is None else _fmt(self.upper)
+        return f"bounded in [{lo}, {hi}]{describe_window(self.start, self.end, term)}{self._describe_groups()}"

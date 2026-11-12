@@ -1,13 +1,16 @@
 
 import numpy as np
 import cvxpy as cp
-from typing import List, Optional, Union
-from .base import Spline
+from typing import List, Optional, Tuple, Union
+
+from .base import CONSTRAINT_METHODS, Spline
 
 class PiecewiseLinear(Spline):
     """
-    Piecewise Linear Spine framework built primarily around discrete ReLU knot bases.
+    Piecewise Linear Spline framework built primarily around discrete ReLU knot bases.
     """
+
+    supported_constraints = frozenset(CONSTRAINT_METHODS)
     def __init__(self, term: str, knots: Union[int, np.ndarray], tag: Optional[str] = 'pwl', by: Optional[str] = None):
         """
         Initialize the Piecewise Linear Spline.
@@ -116,6 +119,36 @@ class PiecewiseLinear(Spline):
             else:
                 self._variables = cp.Variable(shape=(dim_base,), name=f"{self.term}_pwl")
         return self._variables
+
+    # ------------------------------------------------------------- constraints
+
+    def _breakpoints(self) -> np.ndarray:
+        return np.asarray(self.knots, dtype=float)
+
+    def _bound_domain(self) -> Tuple[float, float]:
+        knots = np.asarray(self.knots, dtype=float)
+        x_range = getattr(self, '_x_range', None) or (knots.min(), knots.max())
+        return min(knots.min(), x_range[0]), max(knots.max(), x_range[1])
+
+    def _slope_constraints(self, v: cp.Expression, lo: float, hi: float, sign: int) -> list:
+        """
+        Constrain the slope of every linear segment overlapping ``[lo, hi]``.
+
+        With basis ``[1, x, max(0, x - k_0), ...]`` segment ``j`` (0 = left of the
+        first knot) has slope ``sum(v[1:j + 2])``.
+        """
+        knots = np.asarray(self.knots, dtype=float)
+        edges = np.concatenate([[-np.inf], knots, [np.inf]])
+        segments = [j for j in range(len(knots) + 1) if edges[j] < hi and edges[j + 1] > lo]
+        return [sign * cp.sum(v[1:j + 2]) >= 0 for j in segments]
+
+    def _curvature_constraints(self, v: cp.Expression, lo: float, hi: float, sign: int) -> list:
+        """The slope change at knot ``i`` is the hinge coefficient ``v[i + 2]``."""
+        knots = np.asarray(self.knots, dtype=float)
+        indices = np.where((knots >= lo) & (knots <= hi))[0]
+        if len(indices) == 0:
+            return []
+        return [sign * v[indices + 2] >= 0]
 
     def __repr__(self):
         return f"PiecewiseLinear(term='{self.term}', knots={self.knots}, by={self._by})"

@@ -118,15 +118,18 @@ class LpRegressor:
                 spline.init_spline(x, by=X[spline.by].to_numpy()[fit_mask])
             else:
                 spline.init_spline(x)
+            spline._check_constraint_conflicts()
 
         total_expression, self._summary_data = self._build_model_expression(X, fit_masks)
         
         self._solve_problem(total_expression, y, solver=solver, **solver_kwargs)
         self._status = self.problem.status
         if self._status != cp.OPTIMAL:
+            hint = (" The constraints may contradict each other or the data."
+                    if self._status in (cp.INFEASIBLE, cp.INFEASIBLE_INACCURATE) else "")
             warnings.warn(
                 f"Optimization finished with status '{self._status}'; "
-                "coefficients may be inaccurate or missing.",
+                f"coefficients may be inaccurate or missing.{hint}",
                 RuntimeWarning,
                 stacklevel=2,
             )
@@ -302,7 +305,7 @@ class LpRegressor:
                     UserWarning,
                     stacklevel=3,
                 )
-            constraint_names = [type(c).__name__ for c in spline.constraints]
+            constraint_names = [c.method for c in spline.constraints]
             constraints_str = ", ".join(constraint_names) if constraint_names else "None"
             penalty_names = [type(p).__name__ for p in getattr(spline, 'penalties', [])]
             penalties_str = ", ".join(penalty_names) if penalty_names else "None"
@@ -314,6 +317,7 @@ class LpRegressor:
                 "Parameters": num_params,
                 "Constraints": constraints_str,
                 "Penalties": penalties_str,
+                "Constraint details": [c.describe(spline.term) for c in spline.constraints],
                 "Train on": None if spline.train_condition is None else str(spline.train_condition),
                 "Active where": None if spline.active_condition is None else str(spline.active_condition),
                 "Rows": n_rows,

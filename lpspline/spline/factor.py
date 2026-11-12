@@ -2,12 +2,15 @@
 import numpy as np
 import cvxpy as cp
 from typing import List, Optional
+
 from .base import Spline
 
 class Factor(Spline):
     """
     Categorical Factor mapping utilizing a one-hot-encoded basis.
     """
+
+    supported_constraints = frozenset({"bounded", "passes_through"})
     def __init__(self, term: str, tag: Optional[str] = 'factor', n_classes: Optional[int] = None):
         """
         Initialize the Factor.
@@ -101,6 +104,14 @@ class Factor(Spline):
             dim = self.n_classes
             self._variables = cp.Variable(shape=(dim,), name=f"{self.term}_factor")
         return self._variables
+
+    def _validate_constraint(self, constraint) -> None:
+        if getattr(constraint, "start", None) is not None or getattr(constraint, "end", None) is not None:
+            raise ValueError("Factor constraints cannot use start/end: categories have no order.")
+
+    def _bound_basis(self, start: Optional[float], end: Optional[float], n: int) -> np.ndarray:
+        """Bound every class level directly."""
+        return np.eye(self.n_classes)
 
     def __repr__(self):
         return f"Factor(term='{self.term}', n_classes={self.n_classes})"

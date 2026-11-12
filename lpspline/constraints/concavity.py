@@ -1,19 +1,25 @@
-"""Concavity constraint."""
-from .convexity import _CurvatureConstraint
+"""Concavity constraint (created by ``Spline.concave``)."""
+from typing import Any, Iterable, Optional
+
+from .base import ShapeConstraint
 
 
-class Concave(_CurvatureConstraint):
+class Concave(ShapeConstraint):
     """
-    Concavity constraint enforcing a negative second derivative globally or locally.
+    Concave spline (non-increasing slope) on a window.
 
-    Shares the implementation of :class:`~lpspline.constraints.Convex` with the sign flipped.
+    Prefer the spline method ``concave(...)``.
 
     Parameters
     ----------
     start : float, default=None
-        The domain starting coordinate to bound the constraint enforcement region.
+        Lower edge of the region (unbounded if None).
     end : float, default=None
-        The domain ending coordinate for the constraint region.
+        Upper edge of the region (unbounded if None).
+    groups : Iterable, default=None
+        `by` groups the constraint applies to (all if None).
     """
 
-    _sign = -1
+    def __init__(self, start: Optional[float] = None, end: Optional[float] = None,
+                 groups: Optional[Iterable[Any]] = None) -> None:
+        super().__init__(order=2, sign=-1, start=start, end=end, groups=groups)

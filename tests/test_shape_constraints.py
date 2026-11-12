@@ -10,7 +10,6 @@ import polars as pl
 import pytest
 
 from lpspline import LpRegressor, bs, l, pwl
-from lpspline.constraints import Anchor, Bound, Concave, Convex, Monotonic
 from lpspline.spline import Spline
 
 TOL = 1e-6
@@ -65,14 +64,14 @@ BSPLINE_SETUPS = [(deg, kn) for deg in (1, 2, 3) for kn in (6, 11)]
 @pytest.mark.parametrize("degree,knots", BSPLINE_SETUPS)
 @pytest.mark.parametrize("start,end", WINDOWS)
 def test_bspline_monotonic(data, degree, knots, start, end):
-    s = bs("x", knots=knots, degree=degree).add_constraint(Monotonic(start=start, end=end))
+    s = bs("x", knots=knots, degree=degree).increasing(start=start, end=end)
     _fit(s, data)
     _assert_shape(s, increasing, start, end)
 
 
 @pytest.mark.parametrize("degree,knots", BSPLINE_SETUPS)
 def test_bspline_monotonic_decreasing(data, degree, knots):
-    s = bs("x", knots=knots, degree=degree).add_constraint(Monotonic(decreasing=True, start=3, end=8))
+    s = bs("x", knots=knots, degree=degree).decreasing(start=3, end=8)
     _fit(s, data)
     _assert_shape(s, decreasing, 3, 8)
 
@@ -80,7 +79,7 @@ def test_bspline_monotonic_decreasing(data, degree, knots):
 @pytest.mark.parametrize("degree,knots", BSPLINE_SETUPS)
 @pytest.mark.parametrize("start,end", WINDOWS)
 def test_bspline_convex(data, degree, knots, start, end):
-    s = bs("x", knots=knots, degree=degree).add_constraint(Convex(start=start, end=end))
+    s = bs("x", knots=knots, degree=degree).convex(start=start, end=end)
     _fit(s, data)
     _assert_shape(s, convex, start, end)
 
@@ -88,31 +87,31 @@ def test_bspline_convex(data, degree, knots, start, end):
 @pytest.mark.parametrize("degree,knots", BSPLINE_SETUPS)
 @pytest.mark.parametrize("start,end", WINDOWS)
 def test_bspline_concave(data, degree, knots, start, end):
-    s = bs("x", knots=knots, degree=degree).add_constraint(Concave(start=start, end=end))
+    s = bs("x", knots=knots, degree=degree).concave(start=start, end=end)
     _fit(s, data)
     _assert_shape(s, concave, start, end)
 
 
-@pytest.mark.parametrize("constraint,check", [(Convex(), convex), (Monotonic(), increasing)])
-def test_bspline_uneven_knots(data, constraint, check):
-    s = bs("x", knots=np.array([0, 0.5, 1, 1.5, 4, 9, 10.0]), degree=3).add_constraint(constraint)
+@pytest.mark.parametrize("method,check", [("convex", convex), ("increasing", increasing)])
+def test_bspline_uneven_knots(data, method, check):
+    s = getattr(bs("x", knots=np.array([0, 0.5, 1, 1.5, 4, 9, 10.0]), degree=3), method)()
     _fit(s, data)
     _assert_shape(s, check)
 
 
-@pytest.mark.parametrize("constraint,check", [
-    (Monotonic(start=1, end=5), increasing),
-    (Convex(start=2, end=8), convex),
+@pytest.mark.parametrize("method,check,start,end", [
+    ("increasing", increasing, 1, 5),
+    ("convex", convex, 2, 8),
 ])
-def test_bspline_by_group_constraints(data, constraint, check):
-    s = bs("x", knots=6, degree=3, by="g").add_constraint(constraint)
+def test_bspline_by_group_constraints(data, method, check, start, end):
+    s = getattr(bs("x", knots=6, degree=3, by="g"), method)(start=start, end=end)
     _fit(s, data)
-    _assert_shape(s, check, constraint.start, constraint.end)
+    _assert_shape(s, check, start, end)
 
 
 def test_window_does_not_constrain_outside(data):
     """A local constraint must leave the rest of the curve free to follow the data."""
-    s = bs("x", knots=11, degree=3).add_constraint(Monotonic(start=0, end=3))
+    s = bs("x", knots=11, degree=3).increasing(start=0, end=3)
     _fit(s, data)
     v = s.eval(GRID)
     assert not increasing(v[GRID >= 4])
@@ -121,7 +120,7 @@ def test_window_does_not_constrain_outside(data):
 @pytest.mark.parametrize("knots", [4, 8])
 @pytest.mark.parametrize("start,end", WINDOWS)
 def test_pwl_monotonic(data, knots, start, end):
-    s = pwl("x", knots=knots).add_constraint(Monotonic(start=start, end=end))
+    s = pwl("x", knots=knots).increasing(start=start, end=end)
     _fit(s, data)
     _assert_shape(s, increasing, start, end)
 
@@ -129,23 +128,23 @@ def test_pwl_monotonic(data, knots, start, end):
 @pytest.mark.parametrize("knots", [4, 8])
 @pytest.mark.parametrize("start,end", WINDOWS)
 def test_pwl_convex_concave(data, knots, start, end):
-    s = pwl("x", knots=knots).add_constraint(Convex(start=start, end=end))
+    s = pwl("x", knots=knots).convex(start=start, end=end)
     _fit(s, data)
     _assert_shape(s, convex, start, end)
-    s = pwl("x", knots=knots).add_constraint(Concave(start=start, end=end))
+    s = pwl("x", knots=knots).concave(start=start, end=end)
     _fit(s, data)
     _assert_shape(s, concave, start, end)
 
 
 def test_pwl_by_monotonic(data):
-    s = pwl("x", knots=5, by="g").add_constraint(Monotonic(start=2, end=6))
+    s = pwl("x", knots=5, by="g").increasing(start=2, end=6)
     _fit(s, data)
     _assert_shape(s, increasing, 2, 6)
 
 
 @pytest.mark.parametrize("by", [None, "g"])
 def test_linear_monotonic(data, by):
-    s = l("x", by=by).add_constraint(Monotonic(decreasing=True))
+    s = l("x", by=by).decreasing()
     _fit(s, data)
     _assert_shape(s, decreasing)
 
@@ -155,7 +154,7 @@ def test_linear_monotonic(data, by):
     lambda: pwl("x", knots=5),
 ])
 def test_bound_is_exact_for_piecewise_linear(data, make):
-    s = make().add_constraint(Bound(lower=-1, upper=1))
+    s = make().bounded(lower=-1, upper=1)
     _fit(s, data)
     v = s.eval(GRID)
     assert v.min() >= -1 - 1e-6 and v.max() <= 1 + 1e-6
@@ -164,7 +163,7 @@ def test_bound_is_exact_for_piecewise_linear(data, make):
 @pytest.mark.parametrize("degree", [2, 3])
 def test_bound_bspline_grid(data, degree):
     """Higher degrees are bounded on the grid; between grid points only a tiny overshoot is possible."""
-    s = bs("x", knots=11, degree=degree).add_constraint(Bound(lower=-1, upper=1, n=200))
+    s = bs("x", knots=11, degree=degree).bounded(lower=-1, upper=1, n=200)
     _fit(s, data)
     v = s.eval(GRID)
     assert v.min() >= -1.01 and v.max() <= 1.01
@@ -176,23 +175,19 @@ def test_bound_bspline_grid(data, degree):
     lambda: l("x"),
 ])
 def test_anchor(data, make):
-    s = make().add_constraint(Anchor((5.0, 2.0), (1.0, -1.0)))
+    s = make().passes_through(points=[(5.0, 2.0), (1.0, -1.0)])
     _fit(s, data)
     np.testing.assert_allclose(s.eval(np.array([5.0, 1.0])), [2.0, -1.0], atol=1e-6)
 
 
 def test_window_start_after_end_raises():
     with pytest.raises(ValueError):
-        Monotonic(start=5, end=1)
+        bs("x", knots=5).increasing(start=5, end=1)
     with pytest.raises(ValueError):
-        Convex(start=5, end=1)
+        bs("x", knots=5).convex(start=5, end=1)
 
 
 def test_window_outside_domain_adds_no_constraints(data):
-    s = bs("x", knots=6).add_constraint(Monotonic(start=20, end=30))
+    s = bs("x", knots=6).increasing(start=20, end=30)
     _fit(s, data)
-    assert Monotonic(start=20, end=30).build_constraint(s) == []
-
-
-def test_concave_is_not_convex():
-    assert not isinstance(Concave(), Convex)
+    assert s.constraints[0].build_constraint(s) == []

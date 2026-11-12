@@ -2,12 +2,15 @@
 import numpy as np
 import cvxpy as cp
 from typing import List, Optional
+
 from .base import Spline
 
 class Linear(Spline):
     """
     Standard Linear feature expansion modeling.
     """
+
+    supported_constraints = frozenset({"increasing", "decreasing", "bounded", "passes_through"})
     def __init__(self, term: str, bias: bool = True, tag: Optional[str] = 'linear', by: Optional[str] = None):
         """
         Initialize the Linear Spline mapping.
@@ -80,6 +83,10 @@ class Linear(Spline):
                 self._variables = cp.Variable(shape=(basedim, len(self._by_classes)), name=f"{self.term}_linear")
         return self._variables
 
+
+    def _slope_constraints(self, v: cp.Expression, lo: float, hi: float, sign: int) -> list:
+        """A line has a single slope, whatever the window."""
+        return [sign * v[1 if self.bias else 0] >= 0]
 
     def __repr__(self):
         return f"Linear(term='{self.term}', bias={self.bias}, by={self._by})"

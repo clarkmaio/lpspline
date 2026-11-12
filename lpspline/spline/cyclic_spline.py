@@ -1,13 +1,16 @@
 
 import numpy as np
 import cvxpy as cp
-from typing import List, Optional
+from typing import List, Optional, Tuple
+
 from .base import Spline
 
 class CyclicSpline(Spline):
     """
     Periodic Cyclic Spline defined by Fourier series expansions.
     """
+
+    supported_constraints = frozenset({"bounded", "passes_through"})
     def __init__(self, term: str, order: int, period: float = None, tag: Optional[str] = 'cyclicspline', by: Optional[str] = None):
         """
         Initialize the Cyclic Spline.
@@ -122,6 +125,10 @@ class CyclicSpline(Spline):
             else:
                 self._variables = cp.Variable(shape=(dim_base,), name=f"{self.term}_cyclic")
         return self._variables
+
+    def _bound_domain(self) -> Tuple[float, float]:
+        """One full period covers every value the spline takes."""
+        return 0.0, float(self.period)
 
     def __repr__(self):
         return f"CyclicSpline(term='{self.term}', period={self.period}, order={self.order}, by={self._by})"

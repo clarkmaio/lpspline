@@ -1,13 +1,16 @@
 
 import numpy as np
 import cvxpy as cp
-from typing import List, Optional, Union
-from .base import Spline
+from typing import List, Optional, Tuple, Union
+
+from .base import CONSTRAINT_METHODS, Spline
 
 class BSpline(Spline):
     """
     B-Spline implementation using the Cox-de Boor recursion algorithm.
     """
+
+    supported_constraints = frozenset(CONSTRAINT_METHODS)
     def __init__(self, term: str, knots: Union[int, np.ndarray], degree: int = 3, by: Optional[str] = None, tag: Optional[str] = 'bspline'):
         """
         Initialize the B-Spline.
@@ -282,6 +285,64 @@ class BSpline(Spline):
         return self._variables
 
 
+
+    # ------------------------------------------------------------- constraints
+
+    def _breakpoints(self) -> np.ndarray:
+        return np.asarray(self.knots, dtype=float)
+
+    def _bound_domain(self) -> Tuple[float, float]:
+        knots = np.asarray(self.knots, dtype=float)
+        x_range = getattr(self, '_x_range', None) or (knots.min(), knots.max())
+        return min(knots.min(), x_range[0]), max(knots.max(), x_range[1])
+
+    def _coef_range(self, lo: float, hi: float) -> Optional[Tuple[int, int]]:
+        """
+        Inclusive range of coefficients active on the window ``[lo, hi]``.
+
+        On the knot interval ``[knots[i], knots[i+1]]`` a degree-``k`` spline
+        combines coefficients ``i, ..., i + k``.
+
+        Returns
+        -------
+        Optional[Tuple[int, int]]
+            ``(first, last)``, or None if the window misses the knot range.
+        """
+        knots = np.asarray(self.knots, dtype=float)
+        intervals = [i for i in range(len(knots) - 1) if knots[i] < hi and knots[i + 1] > lo]
+        if not intervals:
+            return None
+        return intervals[0], intervals[-1] + self.degree
+
+    def _derivative_coefs(self, v: cp.Expression, first: int, last: int) -> cp.Expression:
+        """
+        Coefficients ``k (c[j+1] - c[j]) / (t[j+k+1] - t[j+1])`` of the derivative B-spline.
+
+        Scaling by the knot spacing keeps curvature constraints exact for uneven knots.
+        """
+        k = self.degree
+        diffs = v[first + 1:last + 1] - v[first:last]
+        if k == 0:
+            return diffs
+        t = self._pad_knots(self.knots, k)
+        j = np.arange(first, last)
+        return cp.multiply(k / (t[j + k + 1] - t[j + 1]), diffs)
+
+    def _slope_constraints(self, v: cp.Expression, lo: float, hi: float, sign: int) -> list:
+        """Monotone coefficients are sufficient for a monotone B-spline (any sorted knots)."""
+        rng = self._coef_range(lo, hi)
+        if rng is None or rng[1] == rng[0]:
+            return []
+        first, last = rng
+        return [sign * (v[first + 1:last + 1] - v[first:last]) >= 0]
+
+    def _curvature_constraints(self, v: cp.Expression, lo: float, hi: float, sign: int) -> list:
+        """Monotone derivative coefficients guarantee a convex/concave B-spline."""
+        rng = self._coef_range(lo, hi)
+        if rng is None or rng[1] - rng[0] < 2:
+            return []
+        d = self._derivative_coefs(v, *rng)
+        return [sign * (d[1:] - d[:-1]) >= 0]
 
     def __repr__(self):
         # Convert numpy array to list for cleaner repr if it's small, or specific format

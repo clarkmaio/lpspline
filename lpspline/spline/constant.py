@@ -1,16 +1,20 @@
 
 
 
-from .base import Spline
-import cvxpy as cp
 from typing import List, Optional
+
+import cvxpy as cp
 import numpy as np
+
+from .base import Spline
 
 
 class Constant(Spline):
     """
     Constant spline intercept representation.
     """
+
+    supported_constraints = frozenset({"bounded", "passes_through"})
     def __init__(self, term: str, tag: Optional[str] = 'constant'):
         """
         Initialize the Constant intercept model component.
@@ -53,6 +57,10 @@ class Constant(Spline):
         if not self._variables:
             self._variables = cp.Variable(shape=(1,), name=f"{self.term}_constant")
         return self._variables
+
+    def _bound_basis(self, start: Optional[float], end: Optional[float], n: int) -> np.ndarray:
+        """A constant takes a single value."""
+        return np.ones((1, 1))
 
     def __repr__(self):
         return f"Constant(term='{self.term}')"

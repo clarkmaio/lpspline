@@ -45,7 +45,7 @@ The easiest way to initialize an instance is to simply write down the formula.
 
 .. code-block:: python
 
-   from lpspline import c, f
+   from lpspline import f, l
 
    mymodel = (
       l(term='x')
@@ -84,7 +84,7 @@ Fit and predict
 
    import polars as pl
    import numpy as np
-   from lpspline import c, f
+   from lpspline import f, l
 
    X = pl.DataFrame({
       'x': np.linspace(0, 10, 100),
@@ -108,6 +108,7 @@ When you fit the model a summary is printed to the console with all main informa
 * applied constraints
 * applied penalties
 * number of parameters
+* a *Details* section describing every constraint and row subset in plain words
 
 
 .. code-block:: text
@@ -128,6 +129,73 @@ When you fit the model a summary is printed to the console with all main informa
 
 
 
+
+Constraints
+-----------
+
+Shape constraints are added with chainable methods on the spline:
+
+.. code-block:: python
+
+   from lpspline import bs, l
+
+   model = (
+       bs(term="temperature", knots=10)
+           .increasing(start=15)                 # non-decreasing for temperature >= 15
+           .convex(end=10)                       # convex for temperature <= 10
+           .bounded(lower=0)                     # never negative
+           .passes_through(points=[(20, 0.0)])   # equal to 0 at 20 degrees
+       + l(term="price").decreasing()
+   )
+
+=====================================  ===============================================
+Method                                 Effect
+=====================================  ===============================================
+``increasing(start, end)``             non-decreasing on the window
+``decreasing(start, end)``             non-increasing on the window
+``convex(start, end)``                 convex (non-decreasing slope) on the window
+``concave(start, end)``                concave (non-increasing slope) on the window
+``bounded(lower, upper, start, end)``  values within ``[lower, upper]`` on the window
+``passes_through(points)``             goes through every ``(x, y)`` in ``points``
+=====================================  ===============================================
+
+* ``start`` / ``end`` are optional: a missing edge means the window is
+  unbounded on that side (``increasing(start=15)`` applies to every value ≥ 15).
+* ``bounded`` checks the spline on a grid of ``n`` points (default 100) plus its
+  knots: the bound is exact for piecewise-linear splines and holds on the grid
+  for smoother ones.
+* For splines with ``by``, every method accepts ``groups=[...]`` to constrain
+  only some groups, e.g. ``bs("x", knots=8, by="site").increasing(groups=["A"])``.
+
+Not every spline supports every constraint. Calling an unsupported method
+raises a ``TypeError`` immediately, listing the supported ones:
+
+====================  =======================================================
+Spline                Supported methods
+====================  =======================================================
+``bs``, ``pwl``       all
+``l``                 ``increasing``, ``decreasing``, ``bounded``, ``passes_through``
+``cs``                ``bounded``, ``passes_through``
+``f``, ``c``          ``bounded``, ``passes_through`` (no ``start``/``end``)
+====================  =======================================================
+
+A ``passes_through`` point outside a ``bounded`` range is reported as a
+``ValueError`` before solving.
+
+.. note::
+
+   Before version 1.0 constraints were objects passed to ``add_constraint``.
+   That still works but emits a ``DeprecationWarning``:
+
+   ===============================================  ==========================================
+   Before                                           Now
+   ===============================================  ==========================================
+   ``.add_constraint(Monotonic(start=2))``          ``.increasing(start=2)``
+   ``.add_constraint(Monotonic(decreasing=True))``  ``.decreasing()``
+   ``.add_constraint(Convex())`` / ``Concave()``    ``.convex()`` / ``.concave()``
+   ``.add_constraint(Bound(lower=0))``              ``.bounded(lower=0)``
+   ``.add_constraint(Anchor((5, 2), (1, -1)))``     ``.passes_through(points=[(5, 2), (1, -1)])``
+   ===============================================  ==========================================
 
 Training and activity subsets
 -----------------------------

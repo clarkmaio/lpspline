@@ -1,31 +1,14 @@
-"""Base class and shared helpers for spline shape constraints."""
+"""Base class and shared helpers for spline shape constraints.
+
+Constraints are internal objects built by the spline methods
+(``increasing``, ``decreasing``, ``convex``, ``concave``, ``bounded``,
+``passes_through``). Each constraint only describes *what* is required; the
+spline translates it into CVXPY constraints on its own coefficients.
+"""
 import abc
-from typing import List, Optional, Tuple
+from typing import Any, Iterable, List, Optional, Tuple
 
-import cvxpy as cp
 import numpy as np
-
-
-class Constraint(abc.ABC):
-    """
-    Abstract base class defining the shape constraint interface.
-    """
-    @abc.abstractmethod
-    def build_constraint(self, s) -> list:
-        """
-        Builds CVXPY constraints functionally mapping to the given spline structure.
-
-        Parameters
-        ----------
-        s : Spline
-            The initialized Spline instance to construct constraints upon.
-
-        Returns
-        -------
-        list
-            A list containing CVXPY constraint objects.
-        """
-        pass
 
 
 def window_bounds(start: Optional[float], end: Optional[float]) -> Tuple[float, float]:
@@ -51,121 +34,130 @@ def window_bounds(start: Optional[float], end: Optional[float]) -> Tuple[float, 
     return lo, hi
 
 
-def group_chunks(s, variables: cp.Variable) -> List[cp.Expression]:
-    """Split a spline's coefficient variable into one 1D vector per ``by`` group.
+def _fmt(value: float) -> str:
+    """Format a number compactly for labels."""
+    return f"{value:g}" if isinstance(value, (int, float, np.number)) else str(value)
 
-    Args:
-        s: The spline owning the variables.
-        variables: The CVXPY variable of the spline.
 
-    Returns:
-        A list of 1D coefficient expressions, one per group (or one in total).
+def describe_window(start: Optional[float], end: Optional[float], term: str = "x") -> str:
+    """Human readable window, e.g. ``"for 2 ≤ x ≤ 6"`` (empty if unbounded)."""
+    if start is None and end is None:
+        return ""
+    if end is None:
+        return f" for {term} ≥ {_fmt(start)}"
+    if start is None:
+        return f" for {term} ≤ {_fmt(end)}"
+    return f" for {_fmt(start)} ≤ {term} ≤ {_fmt(end)}"
+
+
+class Constraint(abc.ABC):
     """
-    if getattr(s, "by", None) is not None and len(variables.shape) == 2:
-        return [variables[:, c] for c in range(variables.shape[1])]
-    return [variables]
+    Abstract base class of all constraints.
 
-
-def bspline_coef_range(s, start: Optional[float], end: Optional[float]) -> Optional[Tuple[int, int]]:
-    """Return the inclusive range of B-spline coefficients active inside a window.
-
-    On the knot interval ``[knots[i], knots[i+1]]`` a spline of degree ``k`` is a
-    combination of coefficients ``i, ..., i + k``. The window is mapped to all
-    knot intervals it overlaps.
-
-    Args:
-        s: A fitted-ready BSpline (knots already initialised).
-        start: Lower edge of the window, or None.
-        end: Upper edge of the window, or None.
-
-    Returns:
-        ``(first, last)`` coefficient indices, or None if the window does not
-        overlap the spline domain.
+    Parameters
+    ----------
+    start : float, default=None
+        Lower edge of the region where the constraint applies (unbounded if None).
+    end : float, default=None
+        Upper edge of the region where the constraint applies (unbounded if None).
+    groups : Iterable, default=None
+        For splines with a `by` column: the groups the constraint applies to.
+        None means every group.
     """
-    knots = np.asarray(s.knots, dtype=float)
-    lo, hi = window_bounds(start, end)
-    intervals = [
-        i for i in range(len(knots) - 1)
-        if knots[i] < hi and knots[i + 1] > lo
-    ]
-    if not intervals:
-        return None
-    return intervals[0], intervals[-1] + s.degree
+
+    #: Name of the spline method that creates this constraint.
+    method: str = ""
+
+    def __init__(self, start: Optional[float] = None, end: Optional[float] = None,
+                 groups: Optional[Iterable[Any]] = None) -> None:
+        window_bounds(start, end)  # validate early
+        self.start = start
+        self.end = end
+        self.groups = None if groups is None else list(groups)
+
+    @property
+    def window(self) -> Tuple[float, float]:
+        """The ``(lo, hi)`` region where the constraint applies."""
+        return window_bounds(self.start, self.end)
+
+    @abc.abstractmethod
+    def build_constraint(self, s) -> list:
+        """
+        Build the CVXPY constraints for the given (initialised) spline.
+
+        Parameters
+        ----------
+        s : Spline
+            The spline the constraint applies to.
+
+        Returns
+        -------
+        list
+            A list of CVXPY constraint objects.
+        """
+
+    @abc.abstractmethod
+    def describe(self, term: str = "x") -> str:
+        """
+        Human readable description used in the model summary.
+
+        Parameters
+        ----------
+        term : str, default="x"
+            Name of the spline feature, used in the window description.
+
+        Returns
+        -------
+        str
+            E.g. ``"increasing for hour ≥ 6"``.
+        """
+
+    def _describe_groups(self) -> str:
+        if self.groups is None:
+            return ""
+        return f" (groups: {', '.join(map(str, self.groups))})"
+
+    def __repr__(self) -> str:
+        return f"<{self.describe()}>"
 
 
-def bspline_derivative_coefs(s, v: cp.Expression, first: int, last: int) -> cp.Expression:
-    """Coefficients of the derivative B-spline restricted to ``first..last``.
+class ShapeConstraint(Constraint):
+    """Constraint on the slope (``order=1``) or curvature (``order=2``) of a spline.
 
-    The derivative of a degree-``k`` B-spline with coefficients ``c`` is a
-    degree ``k-1`` B-spline with coefficients
-    ``k * (c[j+1] - c[j]) / (t[j+k+1] - t[j+1])``. Using these (rather than raw
-    differences) keeps convexity constraints exact for unevenly spaced knots.
-
-    Args:
-        s: The BSpline.
-        v: 1D coefficient expression for one group.
-        first: First coefficient index (inclusive).
-        last: Last coefficient index (inclusive).
-
-    Returns:
-        Expression of length ``last - first``.
+    Parameters
+    ----------
+    order : int
+        1 for monotonicity, 2 for convexity/concavity.
+    sign : int
+        +1 for increasing/convex, -1 for decreasing/concave.
+    start, end, groups :
+        See :class:`Constraint`.
     """
-    k = s.degree
-    diffs = v[first + 1:last + 1] - v[first:last]
-    if k == 0:
-        return diffs
-    t = s._pad_knots(s.knots, k)
-    j = np.arange(first, last)
-    scale = k / (t[j + k + 1] - t[j + 1])
-    return cp.multiply(scale, diffs)
 
+    _names = {(1, 1): "increasing", (1, -1): "decreasing", (2, 1): "convex", (2, -1): "concave"}
 
-def bspline_curvature_constraints(s, start: Optional[float], end: Optional[float], sign: int) -> list:
-    """Build convexity (``sign=1``) or concavity (``sign=-1``) constraints for a BSpline.
+    def __init__(self, order: int, sign: int, start: Optional[float] = None,
+                 end: Optional[float] = None, groups: Optional[Iterable[Any]] = None) -> None:
+        super().__init__(start=start, end=end, groups=groups)
+        if (order, sign) not in self._names:
+            raise ValueError(f"Invalid shape constraint order={order}, sign={sign}.")
+        self.order = order
+        self.sign = sign
 
-    The spline is convex where its derivative is non-decreasing, which is
-    guaranteed when the derivative's B-spline coefficients are non-decreasing.
+    @property
+    def method(self) -> str:  # type: ignore[override]
+        return self._names[(self.order, self.sign)]
 
-    Args:
-        s: The BSpline.
-        start: Lower edge of the window, or None.
-        end: Upper edge of the window, or None.
-        sign: ``1`` for convex, ``-1`` for concave.
+    def build_constraint(self, s) -> list:
+        """Ask the spline for its slope/curvature constraints on each selected group."""
+        lo, hi = self.window
+        constraints: List = []
+        for v in s._coefficient_groups(self.groups):
+            if self.order == 1:
+                constraints.extend(s._slope_constraints(v, lo, hi, self.sign))
+            else:
+                constraints.extend(s._curvature_constraints(v, lo, hi, self.sign))
+        return constraints
 
-    Returns:
-        A list of CVXPY constraints.
-    """
-    rng = bspline_coef_range(s, start, end)
-    if rng is None or rng[1] - rng[0] < 2:
-        return []
-    first, last = rng
-    constraints = []
-    for v in group_chunks(s, s._build_variables()):
-        d = bspline_derivative_coefs(s, v, first, last)
-        constraints.append(sign * (d[1:] - d[:-1]) >= 0)
-    return constraints
-
-
-def pwl_kink_constraints(s, start: Optional[float], end: Optional[float], sign: int) -> list:
-    """Build convexity (``sign=1``) or concavity (``sign=-1``) constraints for a PiecewiseLinear.
-
-    The slope change at knot ``i`` is the coefficient ``v[i + 2]`` of the hinge
-    ``max(0, x - knot_i)``; only knots inside the window are constrained.
-
-    Args:
-        s: The PiecewiseLinear spline.
-        start: Lower edge of the window, or None.
-        end: Upper edge of the window, or None.
-        sign: ``1`` for convex, ``-1`` for concave.
-
-    Returns:
-        A list of CVXPY constraints.
-    """
-    lo, hi = window_bounds(start, end)
-    knots = np.asarray(s.knots, dtype=float)
-    # A kink exactly on the window edge does not affect curvature inside it,
-    # but including it is harmless and matches the previous inclusive behaviour.
-    indices = np.where((knots >= lo) & (knots <= hi))[0]
-    if len(indices) == 0:
-        return []
-    return [sign * v[indices + 2] >= 0 for v in group_chunks(s, s._build_variables())]
+    def describe(self, term: str = "x") -> str:
+        return f"{self.method}{describe_window(self.start, self.end, term)}{self._describe_groups()}"

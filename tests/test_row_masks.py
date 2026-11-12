@@ -11,7 +11,6 @@ import polars as pl  # noqa: E402
 import pytest  # noqa: E402
 
 from lpspline import Log, LpRegressor, bs, cs, f, l  # noqa: E402
-from lpspline.constraints import Monotonic  # noqa: E402
 from lpspline.viz import plot_diagnostic, plot_interactive  # noqa: E402
 
 N = 2400
@@ -94,7 +93,7 @@ def test_train_on_with_constraint(data):
     X, rng = data
     x = X["hour"].to_numpy()
     y = np.where(X["day_index"].to_numpy() < 1000, -x, rng.normal(0, 10, N))
-    spline = bs("hour", knots=6).train_on(pl.col("day_index") < 1000).add_constraint(Monotonic())
+    spline = bs("hour", knots=6).train_on(pl.col("day_index") < 1000).increasing()
     with pytest.warns(UserWarning):
         (+spline).fit(X, pl.Series(y), summary=False)
     v = spline.eval(np.linspace(0, 23, 200))
@@ -233,7 +232,7 @@ def test_summary_lists_row_subsets(data, capsys):
     model = +hourly().train_on(pl.col("day_index") < 1000).active_where(pl.col("day_index") < 1000)
     model.fit(X, pl.Series(profile(X["hour"].to_numpy())))
     out = capsys.readouterr().out
-    assert "Row subsets" in out and "train_on" in out and "active_where" in out
+    assert "Details" in out and "train_on" in out and "active_where" in out
     assert "(2000 training rows)" in out
 
 
