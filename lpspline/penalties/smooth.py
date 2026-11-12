@@ -44,10 +44,7 @@ class Ridge(Penalty):
             Returns a list of CVXPY expressions to be mathematically subtracted/added 
             into the objective solver metric.
         """
-        penalties = []
-        for var in s._variables:
-            penalties.append(self.alpha * cp.sum_squares(var))
-        return penalties
+        return [self.alpha * cp.sum_squares(s._build_variables())]
 
 
 
@@ -92,7 +89,4 @@ class Lasso(Penalty):
         list
             A list of CVXPY absolute weighting expressions applied to the core equation metric.
         """
-        penalties = []
-        for var in s._variables:
-            penalties.append(self.alpha * cp.sum_abs(var))
-        return penalties
+        return [self.alpha * cp.norm1(s._build_variables())]
