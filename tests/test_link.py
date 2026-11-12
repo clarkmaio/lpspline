@@ -1,57 +1,60 @@
+"""Tests for the link wrappers: each is named after the function applied to the splines."""
 import numpy as np
 import polars as pl
-from lpspline import LpRegressor, l, Log, Sigmoid, Exp
+import pytest
 
-def test_log_link():
-    print("Testing Log link...")
-    X = pl.DataFrame({"x": np.linspace(0, 10, 100)})
-    # y = exp(0.5 * x)
-    y = np.exp(0.5 * X["x"].to_numpy()) + np.random.normal(0, 0.1, 100)
-    y = np.maximum(y, 0.01) # Ensure positive
-    y_series = pl.Series("y", y)
-    
-    reg = LpRegressor(l("x"))
-    log_model = Log(reg)
-    log_model.fit(X, y_series, summary=False)
-    
-    pred = log_model.predict(X)
-    print(f"Log model max prediction: {pred.max():.2f}, Mean: {pred.mean():.2f}")
-    assert np.all(pred > 0)
+from lpspline import Exp, Link, Log, LpRegressor, Sigmoid, l
 
-def test_sigmoid_link():
-    print("\nTesting Sigmoid link...")
-    X = pl.DataFrame({"x": np.linspace(-5, 5, 100)})
-    # y = sigmoid(0.5 * x)
-    y_true = 1 / (1 + np.exp(-0.5 * X["x"].to_numpy()))
-    y = y_true + np.random.normal(0, 0.01, 100)
-    y = np.clip(y, 0.01, 0.99) # Ensure between 0 and 1
-    y_series = pl.Series("y", y)
-    
-    reg = LpRegressor(l("x"))
-    sigmoid_model = Sigmoid(reg)
-    sigmoid_model.fit(X, y_series, summary=False)
-    
-    pred = sigmoid_model.predict(X)
-    print(f"Sigmoid model min/max prediction: {pred.min():.2f}/{pred.max():.2f}")
-    assert np.all((pred >= 0) & (pred <= 1))
 
-def test_exp_link():
-    print("\nTesting Exp link...")
-    X = pl.DataFrame({"x": np.linspace(1, 10, 100)})
-    # y = log(x)
-    y_true = np.log(X["x"].to_numpy())
-    y = y_true + np.random.normal(0, 0.01, 100)
-    y_series = pl.Series("y", y)
-    
-    reg = LpRegressor(l("x"))
-    exp_model = Exp(reg)
-    exp_model.fit(X, y_series, summary=False)
-    
-    pred = exp_model.predict(X)
-    print(f"Exp model min/max prediction: {pred.min():.2f}/{pred.max():.2f}")
+@pytest.fixture
+def X():
+    return pl.DataFrame({"x": np.linspace(1, 4, 100)})
 
-if __name__ == "__main__":
-    test_log_link()
-    test_sigmoid_link()
-    test_exp_link()
-    print("\nAll tests completed!")
+
+def test_exp_means_y_equals_exp_of_splines(X):
+    x = X["x"].to_numpy()
+    y = pl.Series("y", np.exp(0.5 * x + 1))  # y = exp(1 + 0.5 x)
+    model = Exp(+l("x"))
+    model.fit(X, y, summary=False)
+    np.testing.assert_allclose(model.splines[0].coefficients, [1.0, 0.5], atol=1e-5)
+    np.testing.assert_allclose(model.predict(X), y.to_numpy(), rtol=1e-5)
+
+
+def test_log_means_y_equals_log_of_splines(X):
+    x = X["x"].to_numpy()
+    y = pl.Series("y", np.log(2 * x + 3))  # y = log(3 + 2 x)
+    model = Log(+l("x"))
+    model.fit(X, y, summary=False)
+    np.testing.assert_allclose(model.splines[0].coefficients, [3.0, 2.0], atol=1e-5)
+    np.testing.assert_allclose(model.predict(X), y.to_numpy(), atol=1e-5)
+
+
+def test_sigmoid_means_y_equals_sigmoid_of_splines(X):
+    x = X["x"].to_numpy()
+    y = pl.Series("y", 1 / (1 + np.exp(-(x - 2.5))))  # y = sigmoid(-2.5 + x)
+    model = Sigmoid(+l("x"))
+    model.fit(X, y, summary=False)
+    np.testing.assert_allclose(model.splines[0].coefficients, [-2.5, 1.0], atol=1e-5)
+    pred = model.predict(X)
+    assert np.all((pred > 0) & (pred < 1))
+    np.testing.assert_allclose(pred, y.to_numpy(), atol=1e-6)
+
+
+def test_custom_link_and_identity_default(X):
+    x = X["x"].to_numpy()
+    y = pl.Series("y", (1 + x) ** 2)
+    model = Link(+l("x"), link=np.sqrt, inv_link=np.square)
+    model.fit(X, y, summary=False)
+    np.testing.assert_allclose(model.predict(X), y.to_numpy(), rtol=1e-5)
+
+    identity = Link(LpRegressor(l("x")))
+    identity.fit(X, pl.Series("y", 2 * x), summary=False)
+    np.testing.assert_allclose(identity.predict(X), 2 * x, atol=1e-5)
+
+
+def test_components_are_on_the_spline_scale(X):
+    x = X["x"].to_numpy()
+    model = Exp(+l("x"))
+    model.fit(X, pl.Series("y", np.exp(x)), summary=False)
+    comps = model.predict(X, return_components=True)
+    np.testing.assert_allclose(comps[:, 0], x, atol=1e-5)

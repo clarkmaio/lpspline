@@ -10,7 +10,7 @@ import numpy as np  # noqa: E402
 import polars as pl  # noqa: E402
 import pytest  # noqa: E402
 
-from lpspline import Log, LpRegressor, bs, cs, f, l  # noqa: E402
+from lpspline import Exp, LpRegressor, bs, cs, f, l  # noqa: E402
 from lpspline.viz import plot_diagnostic, plot_interactive  # noqa: E402
 
 N = 2400
@@ -222,7 +222,7 @@ def test_link_model_with_active_where(data):
     X, _ = data
     f3 = X["feature3"].to_numpy()
     y = np.where(f3 <= 0, np.exp(profile(X["hour"].to_numpy())), 1.0)
-    model = Log(+hourly().active_where(pl.col("feature3") <= 0))
+    model = Exp(+hourly().active_where(pl.col("feature3") <= 0))
     model.fit(X, pl.Series(y), summary=False)
     np.testing.assert_allclose(model.predict(X), y, atol=1e-5)
 

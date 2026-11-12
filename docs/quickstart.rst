@@ -197,6 +197,41 @@ A ``passes_through`` point outside a ``bounded`` range is reported as a
    ``.add_constraint(Anchor((5, 2), (1, -1)))``     ``.passes_through(points=[(5, 2), (1, -1)])``
    ===============================================  ==========================================
 
+.. warning::
+
+   In version 1.0 ``Log`` and ``Exp`` swapped meaning, so that each wrapper is
+   named after the function applied to the splines (like ``Sigmoid``).
+   Old ``Log(model)`` (``y = exp(model)``) is now ``Exp(model)``, and old
+   ``Exp(model)`` (``y = log(model)``) is now ``Log(model)``. Models saved
+   with older versions keep predicting as before.
+
+Link functions
+--------------
+
+Wrap a model in a function to fit ``y = function(s_1 + s_2 + ...)``. The
+wrapper is named after the function applied to the sum of the splines:
+
+=================================  ==========================  ====================================
+Wrapper                            Model                       Splines are fitted on
+=================================  ==========================  ====================================
+``Exp(bs(...) + l(...))``          ``y = exp(bs + l)``         ``log(y)`` (needs ``y > 0``)
+``Sigmoid(bs(...) + l(...))``      ``y = sigmoid(bs + l)``     ``logit(y)`` (needs ``0 < y < 1``)
+``Log(bs(...) + l(...))``          ``y = log(bs + l)``         ``exp(y)``
+``Link(model, link, inv_link)``    ``y = inv_link(model)``     ``link(y)``
+=================================  ==========================  ====================================
+
+.. code-block:: python
+
+   from lpspline import Exp, bs, l
+
+   model = Exp(bs("x", knots=5).increasing() + l("z"))
+   model.fit(X, y)
+   model.predict(X)                          # exp of the sum of the splines
+   model.predict(X, return_components=True)  # each spline, before exp
+
+Constraints apply to the splines, before the function: ``bounded(lower=0)``
+inside ``Exp(...)`` means ``y >= 1``.
+
 Training and activity subsets
 -----------------------------
 

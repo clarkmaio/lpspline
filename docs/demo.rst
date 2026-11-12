@@ -190,6 +190,10 @@ See ``notebook/subset_demo.py`` for an interactive walkthrough.
 Link functions
 --------------
 
+Wrap the sum of splines in a function: the wrapper is named after the function
+applied to the splines, so ``Log(l("x"))`` reads as ``y = log(x)`` and
+``Exp(bs(...) + l(...))`` as ``y = exp(bs + l)``.
+
 .. code-block:: python
 
     import numpy as np
@@ -198,7 +202,7 @@ Link functions
     import pimpmyplot as pmp
 
     from lpspline import l
-    from lpspline.link import Log, Exp
+    from lpspline import Log
 
     # ----------------- Demo dataset
     N = 1000
@@ -207,9 +211,9 @@ Link functions
     })
     y = pl.Series(np.log(X['x']) + np.random.randn(N)*0.1)
 
-    # ----------------- Model with log link
-    model = Exp(
-        +l(term='x') # This is a linear term!
+    # ----------------- Model: y = log(x)
+    model = Log(
+        +l(term='x')  # a linear term inside the log
     )
     model.fit(X, y, summary=False)
 

@@ -15,10 +15,15 @@ def logit(p):
 
 class Link(LpRegressor):
     """
-    A wrapper for LpRegressor that applies a link function to the target 
-    during fitting and an inverse link function to the predictions.
-    
-    This allows for generalized additive models such as log-linear or logistic regression.
+    Wrap an additive spline model in a function: ``y = inv_link(s_1(x) + s_2(x) + ...)``.
+
+    The wrapper is named after the function applied to the sum of the splines,
+    e.g. ``Exp(model)`` means ``y = exp(model)``. Fitting applies `link` (the
+    inverse of that function) to the target and fits the splines on it with
+    least squares; predicting applies `inv_link` to the sum of the splines.
+
+    Constraints act on the sum of the splines, before `inv_link`: for instance
+    ``bounded(lower=0)`` inside ``Exp(...)`` means ``y >= 1``.
     """
     def __init__(
         self, 
@@ -34,11 +39,11 @@ class Link(LpRegressor):
         regressor : LpRegressor
             The regressor instance to wrap.
         link : Callable, optional
-            The link function to apply to the target during fit (e.g., np.log).
-            Defaults to identity if not provided.
+            Applied to the target before fitting (e.g. ``np.log`` for ``Exp``).
+            Defaults to identity.
         inv_link : Callable, optional
-            The inverse link function to apply to predictions (e.g., np.exp).
-            Defaults to identity if not provided.
+            Applied to the sum of the splines when predicting (e.g. ``np.exp`` for ``Exp``).
+            Defaults to identity.
         """
         self.regressor = regressor
         self.splines = regressor.splines

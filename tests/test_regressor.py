@@ -212,10 +212,10 @@ def _positive_data():
     return pl.DataFrame({"x": x}), x
 
 
-def test_log_link_recovers_exponential():
+def test_exp_link_recovers_exponential():
     X, x = _positive_data()
     y = pl.Series("y", np.exp(0.5 * x + 1))
-    model = Log(+l("x"))
+    model = Exp(+l("x"))
     model.fit(X, y, summary=False)
     np.testing.assert_allclose(model.predict(X), y.to_numpy(), rtol=1e-4)
     np.testing.assert_allclose(model.splines[0].coefficients, [1, 0.5], atol=1e-4)
@@ -231,23 +231,23 @@ def test_sigmoid_link_bounded():
     np.testing.assert_allclose(pred, p, atol=1e-4)
 
 
-def test_exp_link():
+def test_log_link():
     X, x = _positive_data()
     y = pl.Series("y", np.log(x + 1))
-    model = Exp(+l("x"))
+    model = Log(+l("x"))
     model.fit(X, y, summary=False)
     assert np.all(np.isfinite(model.predict(X)))
 
 
 def test_link_components_not_transformed():
     X, x = _positive_data()
-    model = Log(+l("x"))
+    model = Exp(+l("x"))
     model.fit(X, pl.Series("y", np.exp(x)), summary=False)
     comps = model.predict(X, return_components=True)
     np.testing.assert_allclose(comps[:, 0], x, atol=1e-4)
 
 
-@pytest.mark.parametrize("wrapper", [Log, Sigmoid, lambda r: Link(r)])
+@pytest.mark.parametrize("wrapper", [Exp, Log, Sigmoid, lambda r: Link(r)])
 def test_link_save_load(tmp_path, wrapper):
     X, x = _positive_data()
     y = pl.Series("y", 1 / (1 + np.exp(-(x - 2))))
