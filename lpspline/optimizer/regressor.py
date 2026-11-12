@@ -97,14 +97,29 @@ class LpRegressor:
         """
         self._validate_input(X)
 
+        fit_masks = []
         for spline in self.splines:
-
+            self._validate_term_in_dataframe(spline.term, X)
             if spline.by is not None:
-                spline.init_spline(X[spline.term].to_numpy(), by=X[spline.by].to_numpy())
-            else:
-                spline.init_spline(X[spline.term].to_numpy())
+                self._validate_term_in_dataframe(spline.by, X)
 
-        total_expression, self._summary_data = self._build_model_expression(X)
+            fit_mask = spline.fit_mask(X)
+            if not fit_mask.any():
+                raise ValueError(
+                    f"Spline '{spline.tag}' has no rows to train on: "
+                    "train_on/active_where exclude every row."
+                )
+            self._warn_active_outside_training(spline, X)
+            fit_masks.append(fit_mask)
+
+            # Knots, period, by groups and classes come from the training rows only.
+            x = X[spline.term].to_numpy()[fit_mask]
+            if spline.by is not None:
+                spline.init_spline(x, by=X[spline.by].to_numpy()[fit_mask])
+            else:
+                spline.init_spline(x)
+
+        total_expression, self._summary_data = self._build_model_expression(X, fit_masks)
         
         self._solve_problem(total_expression, y, solver=solver, **solver_kwargs)
         self._status = self.problem.status
@@ -117,6 +132,22 @@ class LpRegressor:
             )
         if summary:
             self.summary()
+
+    @staticmethod
+    def _warn_active_outside_training(spline: "base_spline.Spline", X: pl.DataFrame) -> None:
+        """Warn when `train_on` leaves rows that the spline will predict on at inference."""
+        if spline.train_condition is None:
+            return
+        outside = spline.active_mask(X) & ~spline.train_mask(X)
+        if outside.any():
+            warnings.warn(
+                f"Spline '{spline.tag}' is active on {int(outside.sum())} rows outside "
+                f"train_on({spline.train_condition}): it is 0 there during fit but will "
+                "contribute when predicting them. Add active_where(...) to switch it off "
+                "on those rows if that is not intended.",
+                UserWarning,
+                stacklevel=3,
+            )
 
     def predict(self, X: pl.DataFrame, return_components: bool = False) -> np.ndarray:
         """
@@ -169,12 +200,14 @@ class LpRegressor:
             self._validate_term_in_dataframe(spline.by, X)
 
         x = X[spline.term].to_numpy()
-        
+        # Only `active_where` applies at inference; `train_on` is a fit-time setting.
+        mask = spline.active_mask(X) if spline.active_condition is not None else None
+
         if spline.by is not None:
             by = X[spline.by].to_numpy()
-            spline_val = spline.eval(x, by=by)
+            spline_val = spline.eval(x, by=by, mask=mask)
         else:
-            spline_val = spline.eval(x)
+            spline_val = spline.eval(x, mask=mask)
         
         if spline_val is None:
              print(f"Warning: Spline for term {spline.term} has no value. Using zeros.")
@@ -224,9 +257,19 @@ class LpRegressor:
         if term not in X.columns:
                 raise ValueError(f"Term {term} not found in input DataFrame columns: {X.columns}")
 
-    def _build_model_expression(self, X: pl.DataFrame) -> Tuple[cp.Expression, List[Dict[str, Any]]]:
+    def _build_model_expression(self, X: pl.DataFrame,
+                                fit_masks: Optional[List[np.ndarray]] = None
+                                ) -> Tuple[cp.Expression, List[Dict[str, Any]]]:
         """
         Construct the global structural mathematical logic natively isolating expressions targeting individual component matrices.
+
+        Parameters
+        ----------
+        X : pl.DataFrame
+            Training data.
+        fit_masks : Optional[List[np.ndarray]], default=None
+            One boolean row mask per spline (`train_on` AND `active_where`);
+            each spline is 0 outside its mask. None means all rows.
 
         Returns
         -------
@@ -236,19 +279,29 @@ class LpRegressor:
         total_expression = 0
         summary_data = []
 
-        for spline in self.splines:
+        if fit_masks is None:
+            fit_masks = [None] * len(self.splines)
+
+        for spline, mask in zip(self.splines, fit_masks):
             self._validate_term_in_dataframe(spline.term, X)
-            
+            x_data = X[spline.term].to_numpy()
+
             if spline.by is not None:
-                x_data = X[spline.term].to_numpy()
                 by_data = X[spline.by].to_numpy()
-                spline_expr = spline(x_data, by=by_data)
+                spline_expr = spline(x_data, by=by_data, mask=mask)
             else:
-                x_data = X[spline.term].to_numpy()
-                spline_expr = spline(x_data)
-            
+                spline_expr = spline(x_data, mask=mask)
+
             # Collect info for summary
             num_params = spline.variables.size
+            n_rows = len(X) if mask is None else int(mask.sum())
+            if n_rows < num_params:
+                warnings.warn(
+                    f"Spline '{spline.tag}' trains on {n_rows} rows but has {num_params} "
+                    "parameters: its coefficients are weakly determined.",
+                    UserWarning,
+                    stacklevel=3,
+                )
             constraint_names = [type(c).__name__ for c in spline.constraints]
             constraints_str = ", ".join(constraint_names) if constraint_names else "None"
             penalty_names = [type(p).__name__ for p in getattr(spline, 'penalties', [])]
@@ -260,7 +313,10 @@ class LpRegressor:
                 "Tag": spline.tag,
                 "Parameters": num_params,
                 "Constraints": constraints_str,
-                "Penalties": penalties_str
+                "Penalties": penalties_str,
+                "Train on": None if spline.train_condition is None else str(spline.train_condition),
+                "Active where": None if spline.active_condition is None else str(spline.active_condition),
+                "Rows": n_rows,
             })
             
             total_expression += spline_expr

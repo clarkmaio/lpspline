@@ -132,25 +132,31 @@ def plot_diagnostic(model: LpRegressor, X: pl.DataFrame, ncols: int = 4, y: pl.S
             x_vals = np.array([spline._int_map.get(v, -1) for v in x_vals_raw])
         else:
             x_vals = x_vals_raw
-        
+
+        # Rows where the spline is switched off (active_where) are exactly 0:
+        # drop them so they neither draw a flat line nor clutter the residuals.
+        active = spline.active_mask(X)
+        X_act = X.filter(pl.Series(active))
+        y_act = None if y is None else (y.filter(pl.Series(active)) if isinstance(y, pl.Series) else np.asarray(y)[active])
+
         if y is not None:
             _plot_partial_residuals(
-                ax=axes[i], 
-                spline=spline, 
-                X=X, 
-                y=y, 
-                components=components, 
-                i=i, 
-                comp_vals=comp_vals, 
-                x_vals=x_vals
+                ax=axes[i],
+                spline=spline,
+                X=X_act,
+                y=y_act,
+                components=components[active],
+                i=i,
+                comp_vals=comp_vals[active],
+                x_vals=x_vals[active]
             )
-        
+
         _plot_spline(
-            ax=axes[i], 
-            spline=spline, 
-            X=X, 
-            x_vals=x_vals, 
-            comp_vals=comp_vals, 
+            ax=axes[i],
+            spline=spline,
+            X=X_act,
+            x_vals=x_vals[active],
+            comp_vals=comp_vals[active],
             color=color
         )
 
@@ -212,11 +218,16 @@ def _prepare_interactive_data(model: LpRegressor, X: pl.DataFrame, y: pl.Series,
         comp_vals = components[:, i]
         # Partial residual: y - sum_{j!=i} s_j(X) = y - (y_pred_total - s_i(X))
         resid_j = y.to_numpy() - (y_pred_total - comp_vals)
-        
+
+        # Hide rows where the spline is switched off (active_where).
+        active = spline.active_mask(X)
+        comp_vals = np.where(active, comp_vals, np.nan)
+        resid_j = np.where(active, resid_j, np.nan)
+
         df_plot = df_plot.with_columns([
             pl.Series(f"x_{spline.tag}", X[spline.term]),
-            pl.Series(f"val_{spline.tag}", comp_vals),
-            pl.Series(f"resid_{spline.tag}", resid_j)
+            pl.Series(f"val_{spline.tag}", comp_vals, nan_to_null=True),
+            pl.Series(f"resid_{spline.tag}", resid_j, nan_to_null=True)
         ])
     return df_plot
 

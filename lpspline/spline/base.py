@@ -1,8 +1,57 @@
 
 import abc
-import numpy as np
-import cvxpy as cp
 from typing import List, Optional
+
+import cvxpy as cp
+import numpy as np
+import polars as pl
+
+
+def evaluate_condition(condition: pl.Expr, X: pl.DataFrame) -> np.ndarray:
+    """
+    Evaluate a boolean polars expression row-wise on a DataFrame.
+
+    Parameters
+    ----------
+    condition : pl.Expr
+        Boolean expression, e.g. ``pl.col("day_index") < 1000``.
+    X : pl.DataFrame
+        The data to evaluate the condition on.
+
+    Returns
+    -------
+    np.ndarray
+        Boolean array of shape ``(len(X),)``. Nulls are treated as False.
+
+    Raises
+    ------
+    ValueError
+        If the expression references missing columns or does not return one value per row.
+    TypeError
+        If the expression does not evaluate to booleans.
+    """
+    try:
+        values = X.select(condition.alias("__lpspline_mask__")).to_series()
+    except pl.exceptions.ColumnNotFoundError as e:
+        raise ValueError(f"Condition {condition} references a column not in the data: {e}") from e
+    if values.dtype != pl.Boolean:
+        raise TypeError(f"Condition {condition} must evaluate to booleans, got {values.dtype}.")
+    if len(values) != len(X):
+        raise ValueError(
+            f"Condition {condition} must return one value per row "
+            f"(got {len(values)} values for {len(X)} rows)."
+        )
+    return values.fill_null(False).to_numpy()
+
+
+def _check_condition(condition: pl.Expr, method: str) -> pl.Expr:
+    """Validate the argument of `train_on` / `active_where`."""
+    if not isinstance(condition, pl.Expr):
+        raise TypeError(
+            f"{method} expects a polars expression such as pl.col('x') > 0, "
+            f"got {type(condition).__name__}."
+        )
+    return condition
 
 class Spline(abc.ABC):
     """
@@ -28,6 +77,9 @@ class Spline(abc.ABC):
         self._by = None # column name of by reference values
         self._by_classes = None # set of unique by values
         self._by_int_map = None # map of by values to integer indices
+
+        self._train_condition: Optional[pl.Expr] = None  # rows used to fit
+        self._active_condition: Optional[pl.Expr] = None  # rows where the spline is non-zero
 
 
     @property
@@ -148,6 +200,127 @@ class Spline(abc.ABC):
         """
         self._by_classes = np.unique(by)
         self._by_int_map = {c: i for i, c in enumerate(self._by_classes)}
+
+    @property
+    def train_condition(self) -> Optional[pl.Expr]:
+        """
+        Returns the condition selecting the training rows, set with `train_on`.
+
+        Returns
+        -------
+        Optional[pl.Expr]
+            The polars expression, or None if the spline trains on all rows.
+        """
+        return getattr(self, '_train_condition', None)
+
+    @property
+    def active_condition(self) -> Optional[pl.Expr]:
+        """
+        Returns the condition selecting the rows where the spline is active, set with `active_where`.
+
+        Returns
+        -------
+        Optional[pl.Expr]
+            The polars expression, or None if the spline is active on all rows.
+        """
+        return getattr(self, '_active_condition', None)
+
+    def train_on(self, condition: pl.Expr) -> "Spline":
+        """
+        Fit this spline only on the rows matching `condition`.
+
+        During `fit` the spline contributes 0 on the other rows, so the rest of the
+        model explains them. Data-driven settings (automatic knots, cyclic period,
+        `by` groups, factor classes) are computed from the training rows only.
+        At prediction time the condition is ignored: use `active_where` to also
+        switch the spline off when predicting.
+
+        Parameters
+        ----------
+        condition : pl.Expr
+            Boolean polars expression, e.g. ``pl.col("day_index") < 1000``.
+            Rows where it is null count as False.
+
+        Returns
+        -------
+        Spline
+            The spline itself, to allow chaining.
+        """
+        self._train_condition = _check_condition(condition, "train_on")
+        return self
+
+    def active_where(self, condition: pl.Expr) -> "Spline":
+        """
+        Make the spline return 0 on the rows not matching `condition`.
+
+        Applies both when fitting (the inactive rows do not inform this spline and
+        are explained by the rest of the model) and when predicting.
+
+        Parameters
+        ----------
+        condition : pl.Expr
+            Boolean polars expression, e.g. ``pl.col("feature3") <= 0``.
+            Rows where it is null count as False (inactive).
+
+        Returns
+        -------
+        Spline
+            The spline itself, to allow chaining.
+        """
+        self._active_condition = _check_condition(condition, "active_where")
+        return self
+
+    def train_mask(self, X: pl.DataFrame) -> np.ndarray:
+        """
+        Boolean mask of the rows selected by `train_on` (all True if unset).
+
+        Parameters
+        ----------
+        X : pl.DataFrame
+            The data.
+
+        Returns
+        -------
+        np.ndarray
+            Boolean array of shape ``(len(X),)``.
+        """
+        if self.train_condition is None:
+            return np.ones(len(X), dtype=bool)
+        return evaluate_condition(self.train_condition, X)
+
+    def active_mask(self, X: pl.DataFrame) -> np.ndarray:
+        """
+        Boolean mask of the rows where the spline is active (all True if unset).
+
+        Parameters
+        ----------
+        X : pl.DataFrame
+            The data.
+
+        Returns
+        -------
+        np.ndarray
+            Boolean array of shape ``(len(X),)``.
+        """
+        if self.active_condition is None:
+            return np.ones(len(X), dtype=bool)
+        return evaluate_condition(self.active_condition, X)
+
+    def fit_mask(self, X: pl.DataFrame) -> np.ndarray:
+        """
+        Rows on which the spline contributes during fitting: `train_on` AND `active_where`.
+
+        Parameters
+        ----------
+        X : pl.DataFrame
+            The training data.
+
+        Returns
+        -------
+        np.ndarray
+            Boolean array of shape ``(len(X),)``.
+        """
+        return self.train_mask(X) & self.active_mask(X)
 
     def add_constraint(self, *constraints):
         """
@@ -271,7 +444,23 @@ class Spline(abc.ABC):
         out[np.arange(n)[mask], by_mapped[mask]] = 1.0
         return out
 
-    def __call__(self, x: np.ndarray, by: np.ndarray = None) -> cp.Expression:
+    @staticmethod
+    def _apply_mask(basis: np.ndarray, mask: Optional[np.ndarray]) -> np.ndarray:
+        """Zero the basis rows outside `mask`.
+
+        Rows are assigned rather than multiplied so that NaN features on
+        masked-out rows do not propagate.
+        """
+        if mask is None:
+            return basis
+        mask = np.asarray(mask, dtype=bool)
+        if mask.shape != (basis.shape[0],):
+            raise ValueError(f"Mask of shape {mask.shape} does not match {basis.shape[0]} rows.")
+        basis = np.array(basis, dtype=float, copy=True)
+        basis[~mask] = 0.0
+        return basis
+
+    def __call__(self, x: np.ndarray, by: np.ndarray = None, mask: Optional[np.ndarray] = None) -> cp.Expression:
         """
         Evaluates the symbolic CVXPY spline expression for the given input `x`.
 
@@ -281,6 +470,8 @@ class Spline(abc.ABC):
             The 1D input feature array for the spline evaluation.
         by : np.ndarray, default=None
             The 1D integer-encoded grouping array, if the `by` argument is specified.
+        mask : Optional[np.ndarray], default=None
+            Boolean row mask; the spline is 0 on rows where it is False.
 
         Returns
         -------
@@ -296,8 +487,8 @@ class Spline(abc.ABC):
         variables = self._build_variables()
         if not variables:
             raise ValueError("No variables defined for this spline.")
-        
-        basis = self._build_basis(x)
+
+        basis = self._apply_mask(self._build_basis(x), mask)
 
         if by is None:
             return basis @ variables
@@ -309,7 +500,8 @@ class Spline(abc.ABC):
             return out
 
 
-    def eval(self, x: np.ndarray, return_basis: bool = False, by: np.ndarray = None) -> np.ndarray:
+    def eval(self, x: np.ndarray, return_basis: bool = False, by: np.ndarray = None,
+             mask: Optional[np.ndarray] = None) -> np.ndarray:
         """
         Evaluates the fitted numeric spline values for the given input `x`.
 
@@ -321,19 +513,21 @@ class Spline(abc.ABC):
             Whether to return the raw basis matrix instead of the evaluated spline.
         by : np.ndarray, default=None
             The 1D integer-encoded grouping array, if the `by` argument is specified.
+        mask : Optional[np.ndarray], default=None
+            Boolean row mask; the spline is 0 on rows where it is False.
 
         Returns
         -------
         np.ndarray
             A 1D numpy array of shape `(n_samples,)` representing the predicted values.
-        
+
         Raises
         ------
-        AssertionError
+        ValueError
             If the spline has not been fitted and coefficients are not available.
         """
         coefficients = self.coefficients  # raises if not fitted
-        basis = self._build_basis(x)
+        basis = self._apply_mask(self._build_basis(x), mask)
         if return_basis:
             return basis
 

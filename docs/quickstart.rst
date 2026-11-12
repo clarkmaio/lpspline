@@ -129,6 +129,53 @@ When you fit the model a summary is printed to the console with all main informa
 
 
 
+Training and activity subsets
+-----------------------------
+
+Each spline can be restricted to a subset of rows with two chainable methods
+taking a boolean polars expression (nulls count as ``False``):
+
+* ``train_on(condition)``: the spline is **fitted** only on the rows matching
+  ``condition``. On the other rows it contributes 0 during the fit, so the rest
+  of the model explains them. Automatic knots, cyclic period, ``by`` groups and
+  factor classes are computed from these rows only. At prediction time the
+  condition is ignored.
+* ``active_where(condition)``: the spline returns 0 on the rows **not** matching
+  ``condition``, both when fitting and when predicting.
+
+.. code-block:: python
+
+   import polars as pl
+   from lpspline import cs, l
+
+   model = (
+       cs(term="hour", order=3, period=24)
+           .train_on(pl.col("day_index") < 1000)    # learn the profile on early data
+           .active_where(pl.col("feature3") <= 0)   # and switch it off when feature3 > 0
+       + l(term="temperature")
+   )
+   model.fit(X, y)
+
+During the fit, a spline contributes only where **both** conditions hold.
+When predicting, only ``active_where`` is applied:
+
+=================================  ==============  =================
+Row                                During ``fit``  During ``predict``
+=================================  ==============  =================
+train and active                   fitted          contributes
+inside train, not active           0               0
+outside train, active              0               contributes
+outside train, not active          0               0
+=================================  ==============  =================
+
+.. warning::
+
+   A spline using ``train_on`` contributes at prediction time on rows where it
+   was 0 during the fit ("outside train, active"). The other splines have
+   already explained those rows, so this may double count. ``fit`` emits a
+   ``UserWarning`` when this happens on the training data; add an
+   ``active_where`` condition if the spline should be off there.
+
 Saving and Loading
 ------------------
 
