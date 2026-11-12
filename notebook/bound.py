@@ -11,10 +11,9 @@ def _():
     import matplotlib.pyplot as plt
     import polars as pl
     from lpspline.datasets import load_by_dataset
-    from lpspline.constraints import Monotonic, Concave, Convex, Anchor, Bound
     from lpspline.viz import plot_diagnostic
 
-    return Bound, bs, np, pl, plot_diagnostic
+    return bs, np, pl, plot_diagnostic
 
 
 @app.cell
@@ -25,10 +24,10 @@ def _(np, pl):
 
 
 @app.cell
-def _(Bound, X, bs, plot_diagnostic, y):
+def _(X, bs, plot_diagnostic, y):
     estimator = (
         +bs(term='x', knots=20)
-            .add_constraint(Bound(lower=0, upper=3, n=1000, start=6, end=100))
+            .bounded(lower=0, upper=3, n=1000, start=6, end=100)
     )
     estimator.fit(X, y)
     fig, _axes = plot_diagnostic(model=estimator, X=X, y=y)
