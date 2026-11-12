@@ -1,6 +1,6 @@
 import cvxpy as cp
 import numpy as np
-from .base import Constraint
+from .base import Constraint, group_chunks
 
 class Bound(Constraint):
     """
@@ -44,7 +44,7 @@ class Bound(Constraint):
         list
             A list containing CVXPY constraint objects.
         """
-        from ..spline import BSpline, PiecewiseLinear, CyclicSpline, Linear
+        from ..spline import BSpline, CyclicSpline, PiecewiseLinear
         
         # Determine the default domain range for the grid
         if isinstance(s, BSpline):
@@ -61,19 +61,18 @@ class Bound(Constraint):
         x_max = self.end if self.end is not None else x_max_default
 
         grid = np.linspace(x_min, x_max, self.n)
+        if isinstance(s, (BSpline, PiecewiseLinear)):
+            # Extremes of piecewise-linear curves lie on knots: include them so the
+            # bound is exact for PiecewiseLinear and degree-1 BSpline.
+            knots = np.asarray(s.knots, dtype=float)
+            grid = np.union1d(grid, knots[(knots >= x_min) & (knots <= x_max)])
         basis = s._build_basis(grid)
-        variables = s._build_variables()
-        
+
         constraints = []
-        M = len(s._by_classes) if (getattr(s, 'by', None) is not None and s._by_classes is not None) else 1
-        
-        for c in range(M):
-            v_chunk = variables[:, c] if (M > 1) else variables
+        for v_chunk in group_chunks(s, s._build_variables()):
             expr = basis @ v_chunk
-            
             if self.lower is not None:
                 constraints.append(expr >= self.lower)
             if self.upper is not None:
                 constraints.append(expr <= self.upper)
-                
         return constraints

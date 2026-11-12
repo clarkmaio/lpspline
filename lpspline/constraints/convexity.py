@@ -1,31 +1,34 @@
-import cvxpy as cp
-import numpy as np
-from .base import Constraint
-from ..spline import Linear, PiecewiseLinear, BSpline
+"""Convexity constraint."""
+from typing import Optional
+
+from .base import Constraint, bspline_curvature_constraints, pwl_kink_constraints, window_bounds
 
 
-class Convex(Constraint):
-    """
-    Convexity constraint enforcing a positive second derivative globally or locally.
-    """
+class _CurvatureConstraint(Constraint):
+    """Shared implementation of :class:`Convex` and :class:`Concave`."""
 
-    def __init__(self, start: float = None, end: float = None) -> None:
+    _sign = 1
+
+    def __init__(self, start: Optional[float] = None, end: Optional[float] = None) -> None:
         """
-        Initialize the Convexity constraint.
+        Initialize the curvature constraint.
 
         Parameters
         ----------
         start : float, default=None
             The domain starting coordinate to bound the constraint enforcement region.
+            If None, the region is unbounded on the left.
         end : float, default=None
             The domain ending coordinate for the constraint region.
+            If None, the region is unbounded on the right.
         """
+        window_bounds(start, end)  # validate early
         self.start = start
         self.end = end
 
     def build_constraint(self, s) -> list:
         """
-        Constructs the appropriate CVXPY convex formulations according to the basis type.
+        Constructs the appropriate CVXPY curvature formulations according to the basis type.
 
         Parameters
         ----------
@@ -40,78 +43,22 @@ class Convex(Constraint):
         Raises
         ------
         NotImplementedError
-            If the supplied Spline instance functionally lacks convexity restrictions.
+            If the supplied Spline instance does not support curvature restrictions.
         """
-        variables = s._build_variables()
+        from ..spline import BSpline, PiecewiseLinear
 
         if isinstance(s, BSpline):
-            return self._constraint_BSpline(s)
-        elif isinstance(s, PiecewiseLinear):
-            return self._constraint_PiecewiseLinear(s)
-        else:
-            raise NotImplementedError(f"Convexity constraint not implemented for spline type '{type(s).__name__}'")
+            return bspline_curvature_constraints(s, self.start, self.end, self._sign)
+        if isinstance(s, PiecewiseLinear):
+            return pwl_kink_constraints(s, self.start, self.end, self._sign)
+        raise NotImplementedError(
+            f"{type(self).__name__} constraint not implemented for spline type '{type(s).__name__}'"
+        )
 
 
-    def _constraint_BSpline(self, s):
-        """
-        Bounds sequential B-Splines evaluating directly on the recursive knot control points natively.
+class Convex(_CurvatureConstraint):
+    """
+    Convexity constraint enforcing a positive second derivative globally or locally.
+    """
 
-        Parameters
-        ----------
-        s : BSpline
-            B-spline formulation component.
-
-        Returns
-        -------
-        list
-            Resultant list enforcing sequential second-order numerical derivatives.
-        """
-        variables = s._build_variables()
-        constraints = []
-        M = len(s._by_classes) if s.by is not None else 1
-        dim_base = len(s.knots) + s.degree - 1
-
-        for c in range(M):
-            v_chunk = variables[:, c] if s.by is not None else variables
-            if self.start is not None and self.end is not None:
-                knots = np.array(s.knots)
-                indices = np.where((knots >= self.start) & (knots <= self.end))[0]
-                max_idx = len(knots) - 3
-                indices = indices[indices <= max_idx]
-                
-                if len(indices) > 0:
-                    constraints.extend([v_chunk[indices+2] - 2 * v_chunk[indices+1] + v_chunk[indices] >= 0])
-            else:
-                constraints.extend([v_chunk[2:] - 2 * v_chunk[1:-1] + v_chunk[:-2] >= 0])
-        return constraints
-
-    def _constraint_PiecewiseLinear(self, s):
-        """
-        Enforces piecewise linear positive second differences tracking changes in slopes natively.
-
-        Parameters
-        ----------
-        s : PiecewiseLinear
-            Approximation basis component.
-
-        Returns
-        -------
-        list
-            Formulations targeting piecewise basis differences targeting positive knot adjustments.
-        """
-        variables = s._build_variables()
-        constraints = []
-        M = len(s._by_classes) if s.by is not None else 1
-        dim_base = 2 + len(s.knots)
-        
-        for c in range(M):
-            v_chunk = variables[:, c] if s.by is not None else variables
-            if self.start is not None and self.end is not None:
-                knots = np.array(s.knots)
-                indices = np.where((knots >= self.start) & (knots <= self.end))[0]
-                
-                if len(indices) > 0:
-                    constraints.extend([v_chunk[indices+2] >= 0])
-            else:
-                constraints.extend([v_chunk[2:] >= 0])
-        return constraints
+    _sign = 1
