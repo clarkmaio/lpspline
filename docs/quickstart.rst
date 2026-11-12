@@ -73,6 +73,16 @@ You can still initialize the ``LpRegressor`` creating an instance in the classic
    mymodel = LpRegressor(splines=[l(term='x'), f(term='c')])
 
 
+Every spline has a ``tag`` identifying it in the model (by default its type,
+e.g. ``"linear"`` or ``"bspline"``). Tags must be unique, so give an explicit
+tag when a model contains two splines of the same type:
+
+.. code-block:: python
+
+   mymodel = l(term='x', tag='lin_x') + l(term='z', tag='lin_z')
+   mymodel.get_spline('lin_z')   # retrieve a spline by tag
+
+
 
 Fit and predict   
 ----------------
@@ -95,6 +105,22 @@ Fit and predict
    mymodel = l(term='x') + f(term='c')
    mymodel.fit(X, y)
    y_pred = mymodel.predict(X)
+   components = mymodel.predict(X, return_components=True)  # one column per spline
+
+Calling ``fit`` again on new data refits from scratch: automatic knots, cyclic
+periods, ``by`` groups and factor classes are recomputed from the new data.
+
+The optimisation runs on `CVXPY <https://www.cvxpy.org>`_ with the ``CLARABEL``
+solver by default. You can choose another installed solver and pass it options:
+
+.. code-block:: python
+
+   mymodel.fit(X, y, solver="SCS", eps=1e-6)   # extra keyword arguments go to the solver
+   mymodel.fit(X, y, summary=False)            # skip the printed summary
+
+If the solver does not reach an optimal solution, ``fit`` emits a
+``RuntimeWarning`` with the solver status (e.g. ``infeasible`` when constraints
+contradict each other).
 
 
 
@@ -111,6 +137,8 @@ When you fit the model a summary is printed to the console with all main informa
 * a *Details* section describing every constraint and row subset in plain words
 
 
+For example, for ``l(term='x').increasing() + f(term='c')``:
+
 .. code-block:: text
 
    ========================================================================================================================
@@ -118,16 +146,17 @@ When you fit the model a summary is printed to the console with all main informa
    ========================================================================================================================
    Problem Status: ✅ optimal
    ------------------------------------------------------------------------------------------------------------------------
-   Spline Type          | Term         | Tag             | Constraints          | Penalties            | Params  
+   Spline Type          | Term         | Tag             | Constraints          | Penalties            | Params
    ------------------------------------------------------------------------------------------------------------------------
-   🟢 Linear            | x            | linearspline    | None                 | None                 | 2       
-   🟢 Factor            | c            | factorspline    | None                 | None                 | 10      
+   🟢 Linear            | x            | linear          | increasing           | None                 | 2
+   🟢 Factor            | c            | factor          | None                 | None                 | 10
    ------------------------------------------------------------------------------------------------------------------------
    📊 Total Parameters                                                                                 | 12
+   ------------------------------------------------------------------------------------------------------------------------
+   Details
+   🎯 linear (100 training rows)
+        constraint:   increasing
    ========================================================================================================================
-
-
-
 
 
 Constraints
@@ -204,6 +233,25 @@ A ``passes_through`` point outside a ``bounded`` range is reported as a
    Old ``Log(model)`` (``y = exp(model)``) is now ``Exp(model)``, and old
    ``Exp(model)`` (``y = log(model)``) is now ``Log(model)``. Models saved
    with older versions keep predicting as before.
+
+Penalties
+---------
+
+Penalties regularise a spline's coefficients. They are added with
+``add_penalty`` and scaled by ``alpha``:
+
+.. code-block:: python
+
+   from lpspline import bs
+   from lpspline.penalties import Lasso, Ridge
+
+   model = (
+       bs(term="x", knots=20, tag="smooth").add_penalty(Ridge(alpha=1.0))   # alpha * sum(coef ** 2)
+       + bs(term="z", knots=20, tag="sparse").add_penalty(Lasso(alpha=0.5))  # alpha * sum(|coef|)
+   )
+
+Penalties and constraints can be combined on the same spline, e.g.
+``bs(term="x", knots=20).increasing().add_penalty(Ridge(alpha=1.0))``.
 
 Link functions
 --------------
@@ -331,3 +379,21 @@ In practice for each spline :math:`s_i` it will be shown:
    :align: center
    :scale: 100 %
    :alt: LPSpline Diagnostic Plot
+
+
+Interactive plot
+~~~~~~~~~~~~~~~~
+
+``plot_interactive`` builds an `Altair <https://altair-viz.github.io>`_ chart:
+the target and the model on top, and one panel per spline below with its
+partial residuals. Hovering a point highlights the same sample in every panel.
+
+.. code-block:: python
+
+   from lpspline.viz import plot_interactive
+
+   chart = plot_interactive(model=mymodel, X=X, y=y, xcol='x')
+   chart  # display in a notebook, or chart.save('model.html')
+
+Use ``show_splines=['tag1', 'tag2']`` to show only some splines. Rows where a
+spline is switched off with ``active_where`` are hidden from its panels.
