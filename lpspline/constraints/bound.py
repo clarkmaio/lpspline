@@ -10,7 +10,7 @@ class Bound(Constraint):
 
     The spline is evaluated on a grid of ``n`` points plus its breakpoints
     (knots), so the bound is exact for piecewise-linear splines and holds on the
-    grid for smoother ones. Prefer the spline method ``bounded(...)``.
+    grid for smoother ones. Created by the spline method ``bounded(...)``.
 
     Parameters
     ----------

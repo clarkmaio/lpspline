@@ -3,8 +3,8 @@ import numpy as np
 import polars as pl
 import pytest
 
-from lpspline import LpRegressor, bs, c, cs, f, l, pwl
-from lpspline.constraints import Anchor, Bound, Convex, Monotonic
+from lpspline import bs, c, cs, f, l, pwl
+from lpspline.constraints import Anchor, Bound, ShapeConstraint
 
 ALL = ["increasing", "decreasing", "convex", "concave", "bounded", "passes_through"]
 SUPPORT = {
@@ -135,35 +135,25 @@ def test_summary_shows_readable_constraints(capsys):
         .bounded(lower=0, end=12)
         .passes_through(points=[(0, 0.0)])
     )
-    model.fit(X, pl.Series(np.linspace(0, 1, 50)))
+    model.fit(X, pl.Series(np.linspace(0, 1, 50)), summary=True)
     out = capsys.readouterr().out
     assert "increasing for hour ≥ 6" in out
     assert "bounded in [0, ∞] for hour ≤ 12" in out
     assert "passes through (0, 0)" in out
 
 
-# --------------------------------------------------------- deprecated API
+# --------------------------------------------------------- constraint objects
 
-def test_add_constraint_still_works_with_warning():
-    with pytest.warns(DeprecationWarning, match=r"use \.increasing"):
-        s = l("x").add_constraint(Monotonic())
-    assert s.constraints[0].method == "increasing"
-    with pytest.warns(DeprecationWarning):
-        with pytest.raises(TypeError, match="does not support convex"):
-            l("x").add_constraint(Convex())
-
-
-def test_old_anchor_positional_points_warn():
-    with pytest.warns(DeprecationWarning, match="points="):
-        a = Anchor((0.0, 10.0), (1.0, 2.0))
-    assert a.points == [(0.0, 10.0), (1.0, 2.0)]
-    assert Anchor(points=[(1, 2)]).xy == [(1, 2.0)]
+def test_constraint_objects_match_methods():
+    s = (bs("x", knots=5).increasing().decreasing(end=1).convex().concave(start=2)
+         .bounded(lower=0).passes_through(points=[(1, 2)]))
+    kinds = [type(c) for c in s.constraints]
+    assert kinds == [ShapeConstraint] * 4 + [Bound, Anchor]
+    assert [(c.order, c.sign) for c in s.constraints[:4]] == [(1, 1), (1, -1), (2, 1), (2, -1)]
+    assert s.constraints[-1].points == [(1, 2.0)]
 
 
-def test_old_bound_class_fits():
-    X = pl.DataFrame({"x": np.linspace(0, 1, 20)})
-    with pytest.warns(DeprecationWarning):
-        s = pwl("x", knots=3).add_constraint(Bound(upper=0.2))
-    model = LpRegressor(s)
-    model.fit(X, pl.Series(np.linspace(0, 1, 20)), summary=False)
-    assert model.predict(X).max() <= 0.2 + 1e-6
+def test_deprecated_api_is_removed():
+    assert not hasattr(l("x"), "add_constraint")
+    with pytest.raises(TypeError):
+        Anchor((0.0, 1.0), (1.0, 2.0))

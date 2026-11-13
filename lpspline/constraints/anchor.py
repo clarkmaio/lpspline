@@ -1,5 +1,4 @@
 """Anchor constraint (created by ``Spline.passes_through``)."""
-import warnings
 from typing import Any, Iterable, Optional, Sequence, Tuple
 
 import numpy as np
@@ -11,7 +10,7 @@ class Anchor(Constraint):
     """
     Force the spline through the given ``(x, y)`` points.
 
-    Prefer the spline method ``passes_through(points=[(x, y), ...])``.
+    Created by the spline method ``passes_through(points=[(x, y), ...])``.
 
     Parameters
     ----------
@@ -23,18 +22,9 @@ class Anchor(Constraint):
 
     method = "passes_through"
 
-    def __init__(self, *args: Tuple[Any, float], points: Optional[Sequence[Tuple[Any, float]]] = None,
+    def __init__(self, points: Sequence[Tuple[Any, float]], *,
                  groups: Optional[Iterable[Any]] = None) -> None:
         super().__init__(groups=groups)
-        if args:
-            if points is not None:
-                raise ValueError("Pass the points either positionally or with `points=`, not both.")
-            warnings.warn(
-                "Anchor(*points) is deprecated: use passes_through(points=[(x, y), ...]).",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            points = list(args)
         self.points = self._validate_points(points)
 
     @staticmethod
@@ -48,11 +38,6 @@ class Anchor(Constraint):
             if not hasattr(p, "__len__") or isinstance(p, (str, bytes)) or len(p) != 2:
                 raise ValueError(f"Each point must be an (x, y) tuple, got {p!r}.")
         return [(x, float(y)) for x, y in points]
-
-    @property
-    def xy(self) -> list:
-        """The anchor points (kept for backward compatibility)."""
-        return self.points
 
     def build_constraint(self, s) -> list:
         """Equality constraints ``spline(x_i) == y_i`` for every point and selected group."""

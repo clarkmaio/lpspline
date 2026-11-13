@@ -1,13 +1,12 @@
 
 import abc
-import warnings
 from typing import Any, Iterable, List, Optional, Sequence, Tuple
 
 import cvxpy as cp
 import numpy as np
 import polars as pl
 
-from ..constraints import Anchor, Bound, Concave, Constraint, Convex, Monotonic
+from ..constraints import Anchor, Bound, Constraint, ShapeConstraint
 
 #: All constraint methods, in the order they are documented.
 CONSTRAINT_METHODS = ("increasing", "decreasing", "convex", "concave", "bounded", "passes_through")
@@ -357,7 +356,7 @@ class Spline(abc.ABC):
         Spline
             The spline itself, to allow chaining.
         """
-        return self._add_constraint(Monotonic(start=start, end=end, groups=groups))
+        return self._add_constraint(ShapeConstraint(order=1, sign=1, start=start, end=end, groups=groups))
 
     def decreasing(self, start: Optional[float] = None, end: Optional[float] = None,
                    groups: Optional[Iterable[Any]] = None) -> "Spline":
@@ -378,7 +377,7 @@ class Spline(abc.ABC):
         Spline
             The spline itself, to allow chaining.
         """
-        return self._add_constraint(Monotonic(start=start, end=end, decreasing=True, groups=groups))
+        return self._add_constraint(ShapeConstraint(order=1, sign=-1, start=start, end=end, groups=groups))
 
     def convex(self, start: Optional[float] = None, end: Optional[float] = None,
                groups: Optional[Iterable[Any]] = None) -> "Spline":
@@ -399,7 +398,7 @@ class Spline(abc.ABC):
         Spline
             The spline itself, to allow chaining.
         """
-        return self._add_constraint(Convex(start=start, end=end, groups=groups))
+        return self._add_constraint(ShapeConstraint(order=2, sign=1, start=start, end=end, groups=groups))
 
     def concave(self, start: Optional[float] = None, end: Optional[float] = None,
                 groups: Optional[Iterable[Any]] = None) -> "Spline":
@@ -420,7 +419,7 @@ class Spline(abc.ABC):
         Spline
             The spline itself, to allow chaining.
         """
-        return self._add_constraint(Concave(start=start, end=end, groups=groups))
+        return self._add_constraint(ShapeConstraint(order=2, sign=-1, start=start, end=end, groups=groups))
 
     def bounded(self, lower: Optional[float] = None, upper: Optional[float] = None,
                 start: Optional[float] = None, end: Optional[float] = None, n: int = 100,
@@ -488,36 +487,6 @@ class Spline(abc.ABC):
 
     def _validate_constraint(self, constraint: Constraint) -> None:
         """Hook for spline-specific checks when a constraint is added."""
-
-    def add_constraint(self, *constraints: Constraint) -> "Spline":
-        """
-        Add constraint objects (deprecated).
-
-        .. deprecated::
-            Use the spline methods instead: ``increasing``, ``decreasing``,
-            ``convex``, ``concave``, ``bounded``, ``passes_through``.
-
-        Parameters
-        ----------
-        *constraints : Constraint
-            Constraint objects such as ``Monotonic()`` or ``Bound(lower=0)``.
-
-        Returns
-        -------
-        Spline
-            The spline itself, to allow chaining.
-        """
-        for c in constraints:
-            if not isinstance(c, Constraint):
-                raise TypeError(f"Expected a Constraint instance, got {type(c).__name__}")
-            warnings.warn(
-                f"add_constraint({type(c).__name__}(...)) is deprecated: use "
-                f".{c.method}(...) on the spline instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            self._add_constraint(c)
-        return self
 
     def _coefficient_groups(self, groups: Optional[Iterable[Any]] = None) -> List[cp.Expression]:
         """

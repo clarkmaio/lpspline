@@ -116,7 +116,7 @@ solver by default. You can choose another installed solver and pass it options:
 .. code-block:: python
 
    mymodel.fit(X, y, solver="SCS", eps=1e-6)   # extra keyword arguments go to the solver
-   mymodel.fit(X, y, summary=False)            # skip the printed summary
+   mymodel.fit(X, y, summary=True)             # print the model summary after fitting
 
 If the solver does not reach an optimal solution, ``fit`` emits a
 ``RuntimeWarning`` with the solver status (e.g. ``infeasible`` when constraints
@@ -127,7 +127,8 @@ contradict each other).
 Summary
 -------
 
-When you fit the model a summary is printed to the console with all main informations:
+Call ``model.summary()`` after fitting (or ``fit(X, y, summary=True)``) to print
+a summary of the model with all main informations:
 
 * spline type
 * term
@@ -214,7 +215,7 @@ A ``passes_through`` point outside a ``bounded`` range is reported as a
 .. note::
 
    Before version 1.0 constraints were objects passed to ``add_constraint``.
-   That still works but emits a ``DeprecationWarning``:
+   That API was removed in version 1.1; use the spline methods instead:
 
    ===============================================  ==========================================
    Before                                           Now
