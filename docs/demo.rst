@@ -122,7 +122,7 @@ Each accepts optional ``start``/``end`` to apply it only on part of the feature 
    :align: center
 
 
-The model summary lists every constraint in plain words:
+``model.summary()`` lists every constraint in plain words:
 
 .. code-block:: text
 
@@ -215,7 +215,7 @@ applied to the splines, so ``Log(l("x"))`` reads as ``y = log(x)`` and
     model = Log(
         +l(term='x')  # a linear term inside the log
     )
-    model.fit(X, y, summary=False)
+    model.fit(X, y)
 
     # ----------------- Plot
     plt.scatter(X['x'], y, color='r', alpha=.5, s=10, label='target')

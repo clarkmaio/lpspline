@@ -230,7 +230,7 @@ def test_link_model_with_active_where(data):
 def test_summary_lists_row_subsets(data, capsys):
     X, _ = data
     model = +hourly().train_on(pl.col("day_index") < 1000).active_where(pl.col("day_index") < 1000)
-    model.fit(X, pl.Series(profile(X["hour"].to_numpy())))
+    model.fit(X, pl.Series(profile(X["hour"].to_numpy())), summary=True)
     out = capsys.readouterr().out
     assert "Details" in out and "train_on" in out and "active_where" in out
     assert "(2000 training rows)" in out

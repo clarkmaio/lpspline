@@ -64,6 +64,7 @@ model = (
 
 # ---------------------------------------- Model Fitting
 model.fit(X, y)
+model.summary()
 
 # ---------------------------------------- Model Prediction
 predictions = model.predict(X)
@@ -106,7 +107,7 @@ See the [documentation](https://lpspline.readthedocs.io/en/latest/) for details 
 
 ## Expected output
 
-Once the model is fitted, you will see a detailed summary to the console and a diagnostic plot showing the fitted splines.
+Once the model is fitted, `model.summary()` prints a detailed summary to the console and `plot_diagnostic` shows the fitted splines.
 
 ```
 ========================================================================================================================

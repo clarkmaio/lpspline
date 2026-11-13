@@ -46,6 +46,8 @@ def test_summary_printed(demo, capsys):
     X, y = demo
     model = +bs("xbs", knots=5)
     model.fit(X, y)
+    assert capsys.readouterr().out == ""  # quiet by default
+    model.fit(X, y, summary=True)
     out = capsys.readouterr().out
     assert "Model Summary" in out and "optimal" in out
     assert "| 7 " in out  # 5 knots + degree 3 - 1 parameters

@@ -67,7 +67,7 @@ class LpRegressor:
         raise ValueError(f"Spline with tag '{tag}' not found.")
         
 
-    def fit(self, X: pl.DataFrame, y: pl.Series, summary: bool = True,
+    def fit(self, X: pl.DataFrame, y: pl.Series, summary: bool = False,
             solver: Optional[str] = None, **solver_kwargs: Any) -> None:
         """
         Compute basis coefficients mapping combinations within additive splines.
@@ -81,7 +81,7 @@ class LpRegressor:
             The independent predictive training feature frame subset containing all modeled keys.
         y : pl.Series
             Dependent observation labels associated mapping.
-        summary : bool, default=True
+        summary : bool, default=False
             Whether to print the model summary after fitting.
         solver : Optional[str], default=None
             CVXPY solver name. Defaults to CLARABEL when installed: the CVXPY default
@@ -302,7 +302,7 @@ class LpRegressor:
                 )
             constraint_names = [c.method for c in spline.constraints]
             constraints_str = ", ".join(constraint_names) if constraint_names else "None"
-            penalty_names = [type(p).__name__ for p in getattr(spline, 'penalties', [])]
+            penalty_names = [type(p).__name__ for p in spline.penalties]
             penalties_str = ", ".join(penalty_names) if penalty_names else "None"
             
             summary_data.append({
@@ -349,7 +349,7 @@ class LpRegressor:
         for spline in self.splines:
             for c in spline.constraints:
                 all_constraints.extend(c.build_constraint(spline))
-            for p in getattr(spline, 'penalties', []):
+            for p in spline.penalties:
                 for p_expr in p.build_penalty(spline):
                     penalty_loss += p_expr
                     
