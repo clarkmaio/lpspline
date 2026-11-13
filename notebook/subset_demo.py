@@ -40,7 +40,8 @@ def _(mo):
             .active_where(pl.col("feature3") <= 0)  # rows where this spline is non-zero
     )
     model = spline + l("flag")
-    model.fit(X, y)                                 # prints a summary with the row subsets
+    model.fit(X, y)
+    model.summary()                                 # lists the row subsets of every spline
     model.predict(X)                                # only active_where applies here
     model.predict(X, return_components=True)        # one column per spline, 0 where inactive
 
@@ -128,7 +129,7 @@ def _(mo):
 def _(X, cs, pl, y1):
     # Without train_on: the broken period pollutes the fit
     model_all = +cs("hour", order=3, period=24)
-    model_all.fit(X, y1, summary=False)
+    model_all.fit(X, y1)
 
     # With train_on: only days < 1000 are used to fit the spline
     model_subset = +cs("hour", order=3, period=24).train_on(pl.col("day_index") < 1000)
@@ -219,7 +220,7 @@ def _(mo):
 def _(X2, cs, l, pl, y2):
     # Without active_where: the hourly spline tries to fit every row
     model_plain = cs("hour", order=3, period=24, tag="hourly") + l("flag", bias=False, tag="flag")
-    model_plain.fit(X2, y2, summary=False)
+    model_plain.fit(X2, y2)
 
     # With active_where: hourly spline is 0 when feature3 > 0, in fit AND predict
     model_active = (
@@ -302,6 +303,7 @@ def _(mo):
         + l("flag", bias=False, tag="flag")
     )
     model.fit(X, y)
+    model.summary()
     ```
 
     The model summary below lists the conditions and the number of training rows
@@ -318,7 +320,7 @@ def _(X2, cs, l, pl, y2):
             .active_where(pl.col("feature3") <= 0)
         + l("flag", bias=False, tag="flag")
     )
-    model_both.fit(X2, y2)
+    model_both.fit(X2, y2, summary=True)
     hourly = model_both.get_spline("hourly")
     return (hourly,)
 

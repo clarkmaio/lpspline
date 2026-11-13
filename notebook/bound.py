@@ -6,11 +6,9 @@ app = marimo.App()
 
 @app.cell
 def _():
-    from lpspline import bs, LpRegressor, l, pwl, cs
+    from lpspline import bs
     import numpy as np
-    import matplotlib.pyplot as plt
     import polars as pl
-    from lpspline.datasets import load_by_dataset
     from lpspline.viz import plot_diagnostic
 
     return bs, np, pl, plot_diagnostic

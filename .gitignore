@@ -27,3 +27,4 @@ __pycache__
 docs/_build/
 # MkDocs
 site/
+docs/generated/
