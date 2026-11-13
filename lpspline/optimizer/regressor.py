@@ -95,7 +95,7 @@ class LpRegressor:
         ValueError
             If no splines were initiated or structural dependencies are incorrectly verified.
         """
-        self._validate_input(X)
+        self._validate_input()
 
         fit_masks = []
         for spline in self.splines:
@@ -211,11 +211,6 @@ class LpRegressor:
             spline_val = spline.eval(x, by=by, mask=mask)
         else:
             spline_val = spline.eval(x, mask=mask)
-        
-        if spline_val is None:
-             print(f"Warning: Spline for term {spline.term} has no value. Using zeros.")
-             return np.zeros(len(X))
-             
         return spline_val
 
     def __add__(self, other: Union["base_spline.Spline", "LpRegressor"]) -> "LpRegressor":
@@ -250,10 +245,10 @@ class LpRegressor:
     def __repr__(self):
         return f"LpRegressor(splines={self.splines})"
 
-    def _validate_input(self, X: pl.DataFrame) -> None:
+    def _validate_input(self) -> None:
         """Ensure there are splines to fit."""
         if not self.splines:
-             raise ValueError("No splines to fit.")
+            raise ValueError("No splines to fit.")
 
     def _validate_term_in_dataframe(self, term: str, X: pl.DataFrame) -> None:
         """Check if the term exists in the DataFrame columns."""

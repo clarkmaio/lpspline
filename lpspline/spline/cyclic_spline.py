@@ -1,7 +1,7 @@
 
 import numpy as np
 import cvxpy as cp
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 from .base import Spline
 
@@ -33,7 +33,6 @@ class CyclicSpline(Spline):
         self._period_spec = period
         self._order = order
         self._by = by
-        self._variables = []
 
     @property
     def period(self) -> float:
@@ -78,7 +77,7 @@ class CyclicSpline(Spline):
         if self._period is None:
             self._period = np.max(x) - np.min(x)
 
-    def _build_basis(self, x: np.ndarray, **kwargs) -> np.ndarray:
+    def _build_basis(self, x: np.ndarray) -> np.ndarray:
         """
         Builds the basis matrix for the cyclic spline using sine/cosine decompositions.
 
@@ -89,8 +88,6 @@ class CyclicSpline(Spline):
         ----------
         x : np.ndarray
             Input 1D array of cyclic measurements.
-        **kwargs : dict
-            Additional format arguments.
         
         Returns
         -------
@@ -98,7 +95,6 @@ class CyclicSpline(Spline):
             A 2D mathematical basis matrix of shape `(n_samples, 1 + 2 * order)`.
         """
         x = np.array(x).flatten()
-        n = len(x)
         basis_list = [np.ones_like(x)]
         
         for k in range(1, self.order + 1):

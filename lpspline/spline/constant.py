@@ -1,7 +1,7 @@
 
 
 
-from typing import List, Optional
+from typing import Optional
 
 import cvxpy as cp
 import numpy as np
@@ -27,7 +27,6 @@ class Constant(Spline):
             A tag for categorical identification.
         """
         super().__init__(term=term, tag=tag)
-        self._variables = []
 
     def _build_basis(self, x: np.ndarray) -> np.ndarray:
         """

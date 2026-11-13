@@ -1,9 +1,5 @@
-
-
-from typing import List, Dict, Any
-import cvxpy as cp
-
-
+"""Console summary of a fitted model."""
+from typing import Any, Dict, List
 
 
 def print_summary(summary_data: List[Dict[str, Any]], status: str = None) -> None:

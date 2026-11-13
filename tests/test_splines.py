@@ -1,7 +1,5 @@
 
-import pytest
 import numpy as np
-import cvxpy as cp
 from lpspline.spline import Linear, PiecewiseLinear, BSpline, CyclicSpline, Factor
 from lpspline import LpRegressor
 

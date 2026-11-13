@@ -8,7 +8,6 @@ import numpy as np
 import polars as pl
 
 from ..constraints import Anchor, Bound, Concave, Constraint, Convex, Monotonic
-from ..constraints.base import ShapeConstraint
 
 #: All constraint methods, in the order they are documented.
 CONSTRAINT_METHODS = ("increasing", "decreasing", "convex", "concave", "bounded", "passes_through")
@@ -635,7 +634,7 @@ class Spline(abc.ABC):
         return self
 
     @abc.abstractmethod
-    def _build_basis(self, x: np.ndarray, **kwargs) -> np.ndarray:
+    def _build_basis(self, x: np.ndarray) -> np.ndarray:
         """
         Builds the basis matrix evaluated at the input features.
 
@@ -643,15 +642,12 @@ class Spline(abc.ABC):
         ----------
         x : np.ndarray
             The 1D input feature array.
-        **kwargs : dict
-            Additional arguments for basis construction.
 
         Returns
         -------
         np.ndarray
             A 2D numpy array of shape `(n_samples, n_basis_funcs)`.
         """
-        pass
 
     @abc.abstractmethod
     def _build_variables(self) -> cp.Variable:
@@ -663,7 +659,6 @@ class Spline(abc.ABC):
         cp.Variable
             The CVXPY variables matrix or vector used for convex optimization.
         """
-        pass
 
 
     def _build_one_hot_matrix(self, by: np.ndarray) -> np.ndarray:

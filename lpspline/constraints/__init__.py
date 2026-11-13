@@ -1,6 +1,9 @@
+"""Constraint objects, built by the spline methods (increasing, bounded, ...)."""
+from .anchor import Anchor
 from .base import Constraint
-from .monotonicity import Monotonic
+from .bound import Bound
 from .concavity import Concave
 from .convexity import Convex
-from .anchor import Anchor
-from .bound import Bound
+from .monotonicity import Monotonic
+
+__all__ = ["Constraint", "Monotonic", "Convex", "Concave", "Bound", "Anchor"]

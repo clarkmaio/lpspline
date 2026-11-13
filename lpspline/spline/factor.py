@@ -1,7 +1,7 @@
 
 import numpy as np
 import cvxpy as cp
-from typing import List, Optional
+from typing import Optional
 
 from .base import Spline
 
@@ -28,7 +28,6 @@ class Factor(Spline):
         super().__init__(term=term, tag=tag)
         self._n_classes = n_classes
         self._n_classes_spec = n_classes
-        self._variables = []
 
     @property
     def n_classes(self) -> Optional[int]:

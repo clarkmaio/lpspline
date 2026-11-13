@@ -12,3 +12,10 @@ from .spline import Factor as f
 from .spline import Constant as c
 
 from .link import Link, Log, Sigmoid, Exp
+
+__all__ = [
+    "__version__",
+    "LpRegressor",
+    "l", "pwl", "bs", "cs", "f", "c",
+    "Link", "Log", "Sigmoid", "Exp",
+]

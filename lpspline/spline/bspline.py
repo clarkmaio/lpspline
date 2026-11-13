@@ -1,7 +1,7 @@
 
 import numpy as np
 import cvxpy as cp
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 from .base import CONSTRAINT_METHODS, Spline
 
@@ -33,8 +33,6 @@ class BSpline(Spline):
         self._knots_spec = knots
         self._degree = degree
         self._by = by
-        self._by_classes = None
-        self._variables = []
 
     @property
     def degree(self) -> int:
@@ -47,18 +45,6 @@ class BSpline(Spline):
             The polynomial degree.
         """
         return self._degree
-
-    @property
-    def by(self) -> Optional[str]:
-        """
-        Returns the grouping variable column name.
-
-        Returns
-        -------
-        Optional[str]
-            The name of the grouping column, or None.
-        """
-        return self._by
 
     @property
     def knots(self) -> Union[int, np.ndarray]:
@@ -129,7 +115,7 @@ class BSpline(Spline):
         high_pad = knots[-1] + highstep * steps
         return np.concatenate([low_pad, knots, high_pad])
 
-    def _build_basis(self, x: np.ndarray, **kwargs) -> np.ndarray:
+    def _build_basis(self, x: np.ndarray) -> np.ndarray:
         """
         Builds the B-Spline basis functions using Cox-de Boor recursion.
         
@@ -137,8 +123,6 @@ class BSpline(Spline):
         ----------
         x : np.ndarray
             Input array of feature values to evaluate.
-        **kwargs : dict
-            Additional arguments.
             
         Returns
         -------
@@ -159,7 +143,7 @@ class BSpline(Spline):
         
         num_basis = m - k - 1
         if num_basis <= 0:
-             raise ValueError(f"Not enough knots for the given degree. Need len(knots) > degree + 1")
+             raise ValueError("Not enough knots for the given degree. Need len(knots) > degree + 1")
 
         b = self._initialize_basis(x, t, n, m)
 

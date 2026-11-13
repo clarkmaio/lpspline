@@ -22,4 +22,3 @@ class Penalty(abc.ABC):
         List[Expression]
             A list containing numeric cost formulations.
         """
-        pass

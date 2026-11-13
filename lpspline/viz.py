@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pimpmyplot as pmp
 import polars as pl
-from typing import List, Optional, Any
+from typing import Any, List
 
 from .optimizer import LpRegressor
 from .spline.factor import Factor
@@ -13,7 +13,7 @@ import altair as alt
 
 
 def _plot_partial_residuals(ax: plt.Axes, spline: object, X: pl.DataFrame, y: pl.Series, 
-                            components: np.ndarray, i: int, comp_vals: np.ndarray, x_vals: np.ndarray):
+                            components: np.ndarray, comp_vals: np.ndarray, x_vals: np.ndarray):
     """
     Scatter plot partial residuals for a specific spline component.
 
@@ -31,8 +31,6 @@ def _plot_partial_residuals(ax: plt.Axes, spline: object, X: pl.DataFrame, y: pl
         The actual target values.
     components : np.ndarray
         The pre-calculated individual spline components.
-    i : int
-        The index of the current spline in `components`.
     comp_vals : np.ndarray
         The specific predictions for this spline component.
     x_vals : np.ndarray
@@ -146,7 +144,6 @@ def plot_diagnostic(model: LpRegressor, X: pl.DataFrame, ncols: int = 4, y: pl.S
                 X=X_act,
                 y=y_act,
                 components=components[active],
-                i=i,
                 comp_vals=comp_vals[active],
                 x_vals=x_vals[active]
             )

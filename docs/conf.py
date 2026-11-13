@@ -21,7 +21,6 @@ version = _version
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    'sphinx_marimo',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',    # Supports both numpy and google docstrings
@@ -58,5 +57,4 @@ html_theme_options = {
 
 autosummary_generate = True
 
-marimo_notebook_dir = '../notebook/marimo'
 

@@ -1,6 +1,6 @@
 import numpy as np
 import polars as pl
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 from ..optimizer import LpRegressor
 
 def sigmoid(x):

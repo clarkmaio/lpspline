@@ -1,7 +1,6 @@
-import pytest
 import numpy as np
 import polars as pl
-from lpspline.spline import PiecewiseLinear, BSpline, CyclicSpline, Linear
+from lpspline.spline import PiecewiseLinear, BSpline, CyclicSpline
 from lpspline import LpRegressor
 
 class TestBoundConstraint:

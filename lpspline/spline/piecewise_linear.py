@@ -1,7 +1,7 @@
 
 import numpy as np
 import cvxpy as cp
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 from .base import CONSTRAINT_METHODS, Spline
 
@@ -30,7 +30,6 @@ class PiecewiseLinear(Spline):
         self._knots = knots
         self._knots_spec = knots
         self._by = by
-        self._variables = []
 
     @property
     def knots(self) -> Union[int, np.ndarray]:
@@ -43,18 +42,6 @@ class PiecewiseLinear(Spline):
             The 1D locations sequentially mapping piecewise shift points.
         """
         return self._knots
-
-    @property
-    def by(self) -> Optional[str]:
-        """
-        Returns the grouping variable column name.
-
-        Returns
-        -------
-        Optional[str]
-            The mapping group attribute column name.
-        """
-        return self._by
 
     def init_spline(self, x: np.ndarray, by: np.ndarray = None):
         """
@@ -75,7 +62,7 @@ class PiecewiseLinear(Spline):
         else:
             self._knots = np.sort(np.asarray(spec, dtype=float))
 
-    def _build_basis(self, x: np.ndarray, **kwargs) -> np.ndarray:
+    def _build_basis(self, x: np.ndarray) -> np.ndarray:
         """
         Builds the localized Rectified Linear basis terms around internal knots.
 
@@ -85,8 +72,6 @@ class PiecewiseLinear(Spline):
         ----------
         x : np.ndarray
             Input dataset array points.
-        **kwargs : dict
-            Supplemental arguments.
 
         Returns
         -------

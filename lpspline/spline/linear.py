@@ -1,7 +1,7 @@
 
 import numpy as np
 import cvxpy as cp
-from typing import List, Optional
+from typing import Optional
 
 from .base import Spline
 
@@ -28,24 +28,9 @@ class Linear(Spline):
         """
         super().__init__(term=term, tag=tag)
         self.bias = bias
-        self._variables = []
         self._by = by
-        self._by_classes = None
 
-    def init_spline(self, x: np.ndarray, by: np.ndarray = None):
-        """
-        Introspectively determines unique categories for nested grouping mappings.
-
-        Parameters
-        ----------
-        x : np.ndarray
-            The evaluation group.
-        by : np.ndarray, default=None
-            The grouped indexing column if modeling interactions.
-        """
-        super().init_spline(x, by)
-
-    def _build_basis(self, x: np.ndarray, **kwargs) -> np.ndarray:
+    def _build_basis(self, x: np.ndarray) -> np.ndarray:
         """
         Builds the raw direct mapping matrix for linear expansions.
         
@@ -55,8 +40,6 @@ class Linear(Spline):
         ----------
         x : np.ndarray
             The 1D input numeric feature sequence array.
-        **kwargs : dict
-            Additional arguments.
 
         Returns
         -------
